@@ -15,9 +15,9 @@ t = 0.05; % Element thickness in m
 NODES.coords = [0   0 ; % node 1 - x,y coordinates
                 3   2 ; % node 2 - x,y coordinates
                 6   0 ; % node 3 - x,y coordinates
-                0   5 ; % node 4 - x,y coordinates
+                6   5 ; % node 4 - x,y coordinates
                 3   5 ;
-                6   5]; % node 5 - x,y coordinates
+                0   5]; % node 5 - x,y coordinates
 NODES.dofs = [1 2 ;  % node 1 - dofs u1,v1 (1,2) - FIXED  
               3 4 ;  % node 2 - dofs u2,v2 (3,4) - FIXED
               5 6 ;  % node 3 - dofs u3,v3 (5,6) - FIXED
@@ -69,13 +69,10 @@ for EL = 1:elements % loop through all elements & build stiffness matrix
                  x32 y23 x13 y31 x21 y12];
     
     
-    alpha = atan2(y2-y1,x2-x1); % angle of inclination relative to the POSITIVE direction of the x axis
+%     alpha = atan2(y2-y1,x2-x1); % angle of inclination relative to the POSITIVE direction of the x axis
+    alpha = 0; % In this case we have input the real global coordinates, so tranformation unnecessary 
     c = cos(alpha); s = sin(alpha); % angle parameters
     ke = B.'*D*B*A*t; % element stiffness
-    
-    if EL == 3
-        ke
-    end
     
     T = [c s 0 0 0 0;
         -s c 0 0 0 0;
