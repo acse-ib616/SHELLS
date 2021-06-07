@@ -138,7 +138,7 @@ end
 
 % Constructing the global nodal force vector
 F = zeros(2*nodes,1); % initialising en empty a 12x1 column vector for convenience
-F(10) = -2250e3; % The load P acts downwards on node 5 i.e. it affects global dof 10
+F(10) = -2250e3; F(8) = -750e3; % The load P acts downwards on node 5 i.e. it affects global dof 10
 % There are no other nodal loads to apply
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -156,13 +156,15 @@ fF = F(dofs_free);
 % the requires sub-matrices of K and f directly in what follows.
 
 % Solution for the unknown nodal dofs
-uR = [0 0 0 0 0 0 0 0 0 0]'; % BC - zero displacement on nodes 1,2,3,4,5,6,7,8,11,12
+uR = zeros(length(dofs_restrained),1); % BC - zero displacement on nodes 1,2,3,4,5,6,7,8,11,12
 uF = KFF\(fF - KFR*uR); % 1st matrix equation
-U = [uR' uF']'; % full nodal dof vector (DANGER!)
+U = zeros(2*nodes,1);
+U(dofs_restrained) = uR;
+U(dofs_free) = uF; % full nodal dof vector
 
 % Solution for the unknown reactions
 fR = KRF*uF + KRR*uR; % 2nd matrix equation
-F = [fR' fF']'; % full nodal force vector (DANGER!)
+F(dofs_restrained) = fR; % full nodal force vector
 
 % Note that this portion is misleading in its minimalism. We exploit the
 % fact that Matlab has efficient routines for matrix operations, and we can
@@ -180,7 +182,7 @@ F = [fR' fF']'; % full nodal force vector (DANGER!)
 % with amplified deformed coordinate (for plotting purposes)
 NODES.new_coords = zeros(size(NODES.coords)); 
 NODES.amp_coords = zeros(size(NODES.coords)); 
-amp = 10; % amplification factor for plotting purposes only 
+amp = 200; % amplification factor for plotting purposes only 
 for I = 1:size(NODES.coords,1)
     for J = 1:size(NODES.coords,2)    
         NODES.amp_coords(I,J) = NODES.coords(I,J) + U(NODES.dofs(I,J))*amp;
@@ -189,60 +191,44 @@ for I = 1:size(NODES.coords,1)
 end
 
 % Plotting
-% figure('units','normalized','outerposition',[0 0 1 1]); hold all; grid on; tol = 1e-3;
-% xmin = min(NODES.amp_coords(:,1)); xmax = max(NODES.amp_coords(:,1)); difx = xmax - xmin;
-% ymin = min(NODES.amp_coords(:,2)); ymax = max(NODES.amp_coords(:,2)); dify = ymax - ymin; fac = 0.25;
-% axis([xmin-difx*fac  xmax+difx*fac  ymin-dify*fac  ymax+dify*fac]);
+figure('units','normalized','outerposition',[0 0 1 1]); hold all; grid on; tol = 1e-3;
+xmin = min(NODES.amp_coords(:,1)); xmax = max(NODES.amp_coords(:,1)); difx = xmax - xmin;
+ymin = min(NODES.amp_coords(:,2)); ymax = max(NODES.amp_coords(:,2)); dify = ymax - ymin; fac = 0.25;
+axis([xmin-difx*fac  xmax+difx*fac  ymin-dify*fac  ymax+dify*fac]);
 % Note that if the 'squished' structural shape bothers you, replace the
 % above line with 'axis equal'
 
-% for EL = 1:elements
-%     n1 = ELEMENTS(EL,1); n2 = ELEMENTS(EL,2); % identify element node numbers
-%     
+for EL = 1:elements
+    n1 = ELEMENTS(EL,1); n2 = ELEMENTS(EL,2); n3 = ELEMENTS(EL,3); % identify element node numbers
+    
 %     Plotting original structure
-%     x1 = NODES.coords(n1,1); y1 = NODES.coords(n1,2); % element node 1 - x,y original coordinates
-%     x2 = NODES.coords(n2,1); y2 = NODES.coords(n2,2); % element node 2 - x,y original coordinates
-%     Le = sqrt( (x2 - x1)^2 + (y2 - y1)^2 ); % element length
-%     ke = EA/Le; % element axial stiffness
-%     alpha = atan2(y2-y1,x2-x1); % angle of inclination relative to the POSITIVE x axis direction
-%     plot([x1,x2],[y1,y2],'Color',[0.5 0.5 0.5],'Linewidth',3); 
-%     
+    x1 = NODES.coords(n1,1); y1 = NODES.coords(n1,2); % element node 1 - x,y original coordinates
+    x2 = NODES.coords(n2,1); y2 = NODES.coords(n2,2); % element node 2 - x,y original coordinates
+    x3 = NODES.coords(n3,1); y3 = NODES.coords(n3,2); % element node 3 - x,y original coordinates
+
+    alpha = atan2(y2-y1,x2-x1); % angle of inclination relative to the POSITIVE x axis direction
+    patch([x1,x2,x3],[y1,y2,y3],[0.5 0.5 0.5]); 
+    
 %     Check on changes in member lengths and plotting amplified deformed structure
-%     x1_amp = NODES.amp_coords(n1,1); y1_amp = NODES.amp_coords(n1,2); % element node 1 - x,y amplified deformed coordinates
-%     x2_amp = NODES.amp_coords(n2,1); y2_amp = NODES.amp_coords(n2,2); % element node 2 - x,y amplified deformed coordinates     
-%     x1_new = NODES.new_coords(n1,1); y1_new = NODES.new_coords(n1,2); % element node 1 - x,y actual deformed coordinates
-%     x2_new = NODES.new_coords(n2,1); y2_new = NODES.new_coords(n2,2); % element node 2 - x,y actual deformed coordinates    
-%     u1 = x1_new - x1; v1 = y1_new - y1; u2 = x2_new - x2; v2 = y2_new - y2; % reconstruction of element global dofs
-%     up1 = cos(alpha)*u1 + sin(alpha)*v1; up2 = cos(alpha)*u2 + sin(alpha)*v2; dup = up2 - up1; % reconstruction of element local dofs     
-%     note that this now gives you access to the element forces       
-%     if dup < -tol % element length has decreased - member in compression
-%         col = 'b'; % blue colour
-%     elseif dup > tol % element length as increased - member in tension
-%         col = 'r'; % red colour
-%     else % no change in element length
-%         col = 'k'; % black colour
-%     end
-%     plot([x1_amp,x2_amp],[y1_amp,y2_amp],col,'Linewidth',3);
-%     
-%     Calculate the axial force in the element, and display it within a text box
-%     Fax = ke*dup;
-%     x_lims = get(gca,'xlim'); xmin = x_lims(1); xmax = x_lims(2); 
-%     y_lims = get(gca,'ylim'); ymin = y_lims(1); ymax = y_lims(2);
-%     ax_pos = get(gca,'position'); ax_xpos = ax_pos(1); ax_ypos = ax_pos(2); ax_width = ax_pos(3); ax_height = ax_pos(4);
-%     txt_x_pos = (0.5*(x1_amp + x2_amp) - xmin)/(xmax - xmin) * ax_width + ax_xpos;
-%     txt_y_pos = (0.5*(y1_amp + y2_amp) - ymin)/(ymax - ymin) * ax_height + ax_ypos;
-%     txt_pos = [txt_x_pos txt_y_pos 0 0];
-%     annotation('textbox',txt_pos,'String',num2str(Fax),'FitBoxToText','on','color',col,'FontSize',20,'BackgroundColor','w');
-%     
+    x1_amp = NODES.amp_coords(n1,1); y1_amp = NODES.amp_coords(n1,2); % element node 1 - x,y amplified deformed coordinates
+    x2_amp = NODES.amp_coords(n2,1); y2_amp = NODES.amp_coords(n2,2); % element node 2 - x,y amplified deformed coordinates
+    x3_amp = NODES.amp_coords(n3,1); y3_amp = NODES.amp_coords(n3,2); % element node 3 - x,y amplified deformed coordinates
+
+    patch([x1_amp,x2_amp,x3_amp],[y1_amp,y2_amp,y3_amp],'r');
+    
+    
 %     Plotting nodes last!
-%     plot(x1,y1,'ko','Markersize',7,'MarkerFaceColor','w');  
-%     plot(x2,y2,'ko','Markersize',7,'MarkerFaceColor','w');
-%     plot(x1_amp,y1_amp,'ko','Markersize',7,'MarkerFaceColor','y');  
-%     plot(x2_amp,y2_amp,'ko','Markersize',7,'MarkerFaceColor','y');
-% end
-% xlabel('x coordinate');
-% ylabel('y coordinate');
-% set(gca,'FontSize',30);
+    plot(x1,y1,'ko','Markersize',7,'MarkerFaceColor','w');  
+    plot(x2,y2,'ko','Markersize',7,'MarkerFaceColor','w');
+    plot(x3,y3,'ko','Markersize',7,'MarkerFaceColor','w');
+    plot(x1_amp,y1_amp,'ko','Markersize',7,'MarkerFaceColor','y');  
+    plot(x2_amp,y2_amp,'ko','Markersize',7,'MarkerFaceColor','y');
+    plot(x3_amp,y3_amp,'ko','Markersize',7,'MarkerFaceColor','y');
+end
+xlabel('x coordinate');
+ylabel('y coordinate');
+title('Deformed shape')
+set(gca,'FontSize',30);
 
 % Printing computed dofs & reactions - this is an important part of the post-processing,
 % make sure to include something like this in every analysis that you do.
@@ -254,10 +240,10 @@ for react = 1:length(fR)
     disp(['The value of the reaction at dof ',num2str(dofs_restrained(react)),' is ',num2str(fR(react))]);
 end
 disp(' '); disp('Vertical equilibrium check:');
-disp(['Total vertical reactions = ',num2str(fR(2) + fR(4) + fR(6) + fR(8) + fR(10))]);
-disp(['Total applied vertical loads = ',num2str(F(12))]);
-if abs(fR(2) + fR(4) + fR(6) + fR(8) + fR(10) + F(12)) < 1e-6; disp('Ok.'); end
+disp(['Total vertical reactions = ',num2str(F(2) + F(4) + F(6) + F(8) + F(12))]);
+disp(['Total applied vertical loads = ',num2str(F(10))]);
+if abs(F(2) + F(4) + F(6) + F(8) + F(10) + F(12)) < 1e-6; disp('Ok.'); end
 disp(' '); disp('Horizontal equilibrium check:');
-disp(['Total horizontal reactions = ',num2str(fR(1) + fR(3) + fR(5) + fR(7) + fR(9))]);
+disp(['Total horizontal reactions = ',num2str(F(1) + F(3) + F(5) + F(7) + F(11))]);
 disp('Total applied horizontal loads = 0');
-if abs(fR(1) + fR(3) + fR(5) + fR(7) + fR(9)) < 1e-6; disp('Ok.'); end
+if abs(F(1) + F(3) + F(5) + F(7) + F(9) + F(11)) < 1e-6; disp('Ok.'); end
