@@ -102,7 +102,7 @@ for EL = 1:elements % loop through all elements & build stiffness matrix
     end
     
     
-    ke = triu(ke)+triu(ke,1)'; % mirror upper matrix to the lower half
+%     ke = triu(ke)+triu(ke,1)'; % mirror upper matrix to the lower half
 
     ke = 0.5*constants*ke; % element stiffness. The 0.5 comes from integrating the area of a triangle (bh/2)
         
