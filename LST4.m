@@ -11,57 +11,50 @@ E = 42e9; % N/m2 - modulus of elasticity of each bar element
 nu = 0.2; % Poisson coefficient
 t = 0.05; % Element thickness in m
 
+% Dimensions of domain and elements in each direction
+nx = 16;
+ny = 2;
+n_el = nx*2*ny;
+Lx = 10;
+Ly = 1;
+dx = Lx/(2*nx); % Distance between nodes in x
+dy = Ly/(2*ny); % Distance between nodes in y
+Nx = 2*nx+1; % Nodes in x direction
+Ny = 2*ny+1; % Nodes in y direction
+N = Nx*Ny; % Total number of nodes
+
 % Specifying nodal x-y coordinates
-NODES.coords = zeros(99,2);
-for i=1:3
-    for j=1:33
-        NODES.coords((i-1)*33+j,:) = [(j-1)*0.3125,0.5*(i-1)];
+NODES.coords = zeros(N,2);
+for i=1:Ny
+    for j=1:Nx
+        NODES.coords((i-1)*Nx+j,:) = [(j-1)*dx,dy*(i-1)];
     end
 end
 
-NODES.dofs = zeros(99,2);
-for i=1:99
+NODES.dofs = zeros(N,2);
+for i=1:N
     
     NODES.dofs(i,:) = [2*i-1, 2*i];
 end
 % Note that node numbers are identified by their row number
      
 % Specifying element nodal connectivity (order does not matter)
-ELEMENTS = [1 3 67 2 35 34 ; % element 1
-            3 5 69 4 37 36 ; % element 2
-            5 7 71 6 39 38 ; % element 3
-            7 9 73 8 41 40 ;
-            9 11 75 10 43 42 ;
-            11 13 77 12 45 44 ;
-            13 15 79 14 47 46 ;
-            15 17 81 16 49 48 ; % element 8
-            17 19 83 18 51 50 ;
-            19 21 85 20 53 52 ;
-            21 23 87 22 55 54 ;
-            23 25 89 24 57 56 ;
-            25 27 91 26 59 58 ;
-            27 29 93 28 61 60 ;
-            29 31 95 30 63 62 ;
-            31 33 97 32 65 64 ; % element 16
-            69 67 3 68 35 36 ; 
-            71 69 5 70 37 38 ; 
-            73 71 7 72 39 40 ; 
-            75 73 9 74 41 42 ;
-            77 75 11 76 43 44 ;
-            79 77 13 78 45 46 ;
-            81 79 15 80 47 48 ;
-            83 81 17 82 49 50 ; 
-            85 83 19 84 51 52 ;
-            87 85 21 86 53 54 ;
-            89 87 23 88 55 56 ;
-            91 89 25 90 57 58 ;
-            93 91 27 92 59 60 ;
-            95 93 29 94 61 62 ;
-            97 95 31 96 63 64 ;
-            99 97 33 98 65 66]; % element 32
+ELEMENTS = zeros(n_el,6);
+for i=1:n_el
+    if mod(floor(i/nx),2) == 0 && mod(i,nx)~= 0
+        ELEMENTS(i,:) = [2*mod(i,nx)-1+2*Nx*max(floor(i/nx)-1,0), 2*mod(i,nx)+2*Nx*max(floor(i/nx)-1,0)+1, 2*Nx+2*mod(i,nx)-1+2*Nx*max(floor(i/nx)-1,0), 2*mod(i,nx)+2*Nx*max(floor(i/nx)-1,0), Nx+2*mod(i,nx)+Nx*floor(i/nx), Nx+2*mod(i,nx)-1+Nx*floor(i/nx)];
+    elseif mod(i,nx)== 0 && mod(floor(i/nx),2) ~= 0
+        ELEMENTS(i,:) = [Nx-2+2*Nx*max(floor(i/nx)-2,0), Nx+2*Nx*max(floor(i/nx)-2,0), Nx+2*Nx-2+2*Nx*max(floor(i/nx)-2,0), Nx-1+2*Nx*max(floor(i/nx)-2,0), 2*Nx-1+Nx*max(floor(i/nx)-1,0), 2*Nx-2+Nx*max(floor(i/nx)-1,0)];
+    elseif mod(i,nx)== 0 && mod(floor(i/nx),2) == 0
+        ELEMENTS(i,:) = [2*Nx*max(floor(i/nx)-2,1)+Nx, Nx+2*Nx*max(floor(i/nx)-2,1)-2, Nx+2*Nx*(max(floor(i/nx)-2,1)-1), Nx-1+2*Nx*max(floor(i/nx)-2,1), Nx+2*Nx*max(floor(i/nx)-2,1)-Nx-1, Nx+2*Nx*max(floor(i/nx)-2,1)-Nx];
+    else
+        ELEMENTS(i,:) = [2*Nx*max(floor(i/nx)-1,1)+2*mod(i,nx)+1, 2*mod(i,nx)+2*Nx*max(floor(i/nx)-1,1)-1, 2*mod(i,nx)+1+2*Nx*(max(floor(i/nx)-1,1)-1), 2*mod(i,nx)+2*Nx*max(floor(i/nx)-1,1), 2*mod(i,nx)+2*Nx*max(floor(i/nx)-1,1)-Nx, 2*mod(i,nx)+2*Nx*max(floor(i/nx)-1,1)-Nx+1];
+    end  
+end
+
 % Degrees of freedom & other parameters
-dofs_free = [3:65,67:198]; % unknown nodal x-y dofs
-dofs_restrained = [1,2,66]; % known nodal x-y dofs due to BC (at nodes 1,9)
+dofs_free = [1:132,135:197,199:2*N]; % unknown nodal x-y dofs
+dofs_restrained = [133,134,198]; % known nodal x-y dofs due to BC (at nodes 1,9)
 nodes = size(NODES.coords,1); % no. of nodes i.e. 52
 elements = size(ELEMENTS,1); % no. of elements i.e. 16
 
@@ -91,7 +84,7 @@ for EL = 1:elements % loop through all elements & build stiffness matrix
     dof51 = NODES.dofs(n5,1); dof52 = NODES.dofs(n5,2);  % element node 5 - dofs
     dof61 = NODES.dofs(n6,1); dof62 = NODES.dofs(n6,2);  % element node 6 - dofs
     
-    [r,wr] = lgwt(4,0.0,1.0); % Gauss quadrature
+    [r,wr] = lgwt(3,0.0,1.0); % Gauss quadrature
 %     [r,wr] = md_gauss(2);
     s = r; ws = wr;
         
@@ -102,12 +95,9 @@ for EL = 1:elements % loop through all elements & build stiffness matrix
     
     for m=1:length(r)
         for n=1:length(s)
-            kers = k_mat2(x1,x2,x3,x4,x5,x6,y1,y2,y3,y4,y5,y6,nu,r(m),s(n));
-            for i=1:12
-                for j=i:12
-                    ke(i,j) = ke(i,j)+kers(i,j).*wr(m).*ws(n);
-                end
-            end
+            kers = k_mat2(x1,x2,x3,x4,x5,x6,y1,y2,y3,y4,y5,y6,nu,r(m),s(n));   
+            
+            ke = ke+kers.*wr(m).*ws(n);              
         end
     end
     
@@ -291,8 +281,8 @@ for EL = 1:elements % loop through all elements & build stiffness matrix
 end
 
 % Constructing the global nodal force vector
-F = zeros(2*nodes,1); % initialising en empty a 54x1 column vector for convenience
-F(166) = -1e4; % The load P acts downwards on node 8 i.e. it affects global dof 16
+F = zeros(2*nodes,1); % initialising en empty a 2Nx1 column vector for convenience
+F(166) = -1e4; % The load P acts downwards on node 166 i.e. it affects global dof 166*2
 % There are no other nodal loads to apply
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

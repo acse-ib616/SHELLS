@@ -50,88 +50,92 @@ for EL = 1:elements % loop through all elements & build stiffness matrix
     x2 = NODES.coords(n2,1); y2 = NODES.coords(n2,2); % element node 2 - x,y coordinates
     x3 = NODES.coords(n3,1); y3 = NODES.coords(n3,2); % element node 3 - x,y coordinates
     
-    x21 = x2 - x1; x31 = x3 - x1; % Triangle sides
-    y21 = y2 - y1; y31 = y3 - y1;
-    Jacobian = abs(x21*y31 - x31*y21);
-    A = Jacobian/2; % m2 - cross-sectional area of triangular element
+%     x21 = x2 - x1; x31 = x3 - x1; % Triangle sides
+%     y21 = y2 - y1; y31 = y3 - y1;
+%     Jacobian = abs(x21*y31 - x31*y21);
+%     A = Jacobian/2; % m2 - cross-sectional area of triangular element
     
     dof11 = NODES.dofs(n1,1); dof12 = NODES.dofs(n1,2); % element node 1 - dofs
     dof21 = NODES.dofs(n2,1); dof22 = NODES.dofs(n2,2); % element node 2 - dofs
     dof31 = NODES.dofs(n3,1); dof32 = NODES.dofs(n3,2); % element node 3 - dofs
     
-    D = E/(1-nu^2)*[1 nu 0; nu 1 0; 0 0 (1-nu)/2]; % Plane stress condition
+    constants = E*t/(1-nu^2); % Plane stress condition
     
     
-    y23 = y2 - y3; y12 = -y21; x32 = x3 - x2; x13 = -x31; % Triangle sides
+%     y23 = y2 - y3; y12 = -y21; x32 = x3 - x2; x13 = -x31; % Triangle sides
+%     
+%     B = 1/(2*A)*[y23 0 y31 0 y12 0;
+%                  0 x32 0 x13 0 x21;
+%                  x32 y23 x13 y31 x21 y12];
+
+    [r,wr] = lgwt(2,0.0,1.0); % Gauss quadrature
+%     [r,wr] = md_gauss(2);
+    s = r; ws = wr;
     
-    B = 1/(2*A)*[y23 0 y31 0 y12 0;
-                 0 x32 0 x13 0 x21;
-                 x32 y23 x13 y31 x21 y12];
+    ke = zeros(6,6);
+    
+    for m=1:length(r)
+        for n=1:length(s)
+            kers = k_CST(x1,x2,x3,y1,y2,y3,nu,r(m),s(n));   
+            
+            ke = ke+kers.*wr(m).*ws(n);
+        end
+    end
     
     
-%     alpha = atan2(y2-y1,x2-x1); % angle of inclination relative to the POSITIVE direction of the x axis
-    alpha = 0; % In this case we have input the real global coordinates, so tranformation unnecessary 
-    c = cos(alpha); s = sin(alpha); % angle parameters
-    ke = B.'*D*B*A*t; % element stiffness
-    
-    T = [c s 0 0 0 0;
-        -s c 0 0 0 0;
-         0 0 c s 0 0;
-        0 0 -s c 0 0;
-         0 0 0 0 c s;
-         0 0 0 0 -s c]; % Transformation matrix
-    
-    ke_transformed = T.'*ke*T;
+    ke = triu(ke)+triu(ke,1)'; % mirror upper matrix to the lower half
+
+    ke = 0.5*constants*ke; % element stiffness. The 0.5 comes from integrating the area of a triangle (bh/2)
     
     % Updating global stiffness matrix [K] coefficients 
     % Note that for each element you still have to 'think locally'
     % Row 1 - element dof11
-    K(dof11,dof11) = K(dof11,dof11) + ke_transformed(1,1); % Col 1 - element dof11
-    K(dof11,dof12) = K(dof11,dof12) + ke_transformed(1,2); % Col 2 - element dof12
-    K(dof11,dof21) = K(dof11,dof21) + ke_transformed(1,3); % Col 3 - element dof21
-    K(dof11,dof22) = K(dof11,dof22) + ke_transformed(1,4); % Col 4 - element dof22
-    K(dof11,dof31) = K(dof11,dof31) + ke_transformed(1,5); % Col 5 - element dof31
-    K(dof11,dof32) = K(dof11,dof32) + ke_transformed(1,6); % Col 6 - element dof32
+    K(dof11,dof11) = K(dof11,dof11) + ke(1,1); % Col 1 - element dof11
+    K(dof11,dof12) = K(dof11,dof12) + ke(1,2); % Col 2 - element dof12
+    K(dof11,dof21) = K(dof11,dof21) + ke(1,3); % Col 3 - element dof21
+    K(dof11,dof22) = K(dof11,dof22) + ke(1,4); % Col 4 - element dof22
+    K(dof11,dof31) = K(dof11,dof31) + ke(1,5); % Col 5 - element dof31
+    K(dof11,dof32) = K(dof11,dof32) + ke(1,6); % Col 6 - element dof32
     
     % Row 2 - element dof12
-    K(dof12,dof11) = K(dof12,dof11) + ke_transformed(2,1); % Col 1 - element dof11
-    K(dof12,dof12) = K(dof12,dof12) + ke_transformed(2,2); % Col 2 - element dof12
-    K(dof12,dof21) = K(dof12,dof21) + ke_transformed(2,3); % Col 3 - element dof21
-    K(dof12,dof22) = K(dof12,dof22) + ke_transformed(2,4); % Col 4 - element dof22
-    K(dof12,dof31) = K(dof12,dof31) + ke_transformed(2,5); % Col 5 - element dof31
-    K(dof12,dof32) = K(dof12,dof32) + ke_transformed(2,6); % Col 6 - element dof32
+    K(dof12,dof11) = K(dof12,dof11) + ke(2,1); % Col 1 - element dof11
+    K(dof12,dof12) = K(dof12,dof12) + ke(2,2); % Col 2 - element dof12
+    K(dof12,dof21) = K(dof12,dof21) + ke(2,3); % Col 3 - element dof21
+    K(dof12,dof22) = K(dof12,dof22) + ke(2,4); % Col 4 - element dof22
+    K(dof12,dof31) = K(dof12,dof31) + ke(2,5); % Col 5 - element dof31
+    K(dof12,dof32) = K(dof12,dof32) + ke(2,6); % Col 6 - element dof32
     
     % Row 3 - element dof21
-    K(dof21,dof11) = K(dof21,dof11) + ke_transformed(3,1); % Col 1 - element dof11
-    K(dof21,dof12) = K(dof21,dof12) + ke_transformed(3,2); % Col 2 - element dof12
-    K(dof21,dof21) = K(dof21,dof21) + ke_transformed(3,3); % Col 3 - element dof21
-    K(dof21,dof22) = K(dof21,dof22) + ke_transformed(3,4); % Col 4 - element dof22
-    K(dof21,dof31) = K(dof21,dof31) + ke_transformed(3,5); % Col 5 - element dof31
-    K(dof21,dof32) = K(dof21,dof32) + ke_transformed(3,6); % Col 6 - element dof32
+    K(dof21,dof11) = K(dof21,dof11) + ke(3,1); % Col 1 - element dof11
+    K(dof21,dof12) = K(dof21,dof12) + ke(3,2); % Col 2 - element dof12
+    K(dof21,dof21) = K(dof21,dof21) + ke(3,3); % Col 3 - element dof21
+    K(dof21,dof22) = K(dof21,dof22) + ke(3,4); % Col 4 - element dof22
+    K(dof21,dof31) = K(dof21,dof31) + ke(3,5); % Col 5 - element dof31
+    K(dof21,dof32) = K(dof21,dof32) + ke(3,6); % Col 6 - element dof32
     
     % Row 4 - element dof22
-    K(dof22,dof11) = K(dof22,dof11) + ke_transformed(4,1); % Col 1 - element dof11
-    K(dof22,dof12) = K(dof22,dof12) + ke_transformed(4,2); % Col 2 - element dof12
-    K(dof22,dof21) = K(dof22,dof21) + ke_transformed(4,3); % Col 3 - element dof21
-    K(dof22,dof22) = K(dof22,dof22) + ke_transformed(4,4); % Col 4 - element dof22
-    K(dof22,dof31) = K(dof22,dof31) + ke_transformed(4,5); % Col 5 - element dof31
-    K(dof22,dof32) = K(dof22,dof32) + ke_transformed(4,6); % Col 6 - element dof32
+    K(dof22,dof11) = K(dof22,dof11) + ke(4,1); % Col 1 - element dof11
+    K(dof22,dof12) = K(dof22,dof12) + ke(4,2); % Col 2 - element dof12
+    K(dof22,dof21) = K(dof22,dof21) + ke(4,3); % Col 3 - element dof21
+    K(dof22,dof22) = K(dof22,dof22) + ke(4,4); % Col 4 - element dof22
+    K(dof22,dof31) = K(dof22,dof31) + ke(4,5); % Col 5 - element dof31
+    K(dof22,dof32) = K(dof22,dof32) + ke(4,6); % Col 6 - element dof32
     
     % Row 5 - element dof31
-    K(dof31,dof11) = K(dof31,dof11) + ke_transformed(5,1); % Col 1 - element dof11
-    K(dof31,dof12) = K(dof31,dof12) + ke_transformed(5,2); % Col 2 - element dof12
-    K(dof31,dof21) = K(dof31,dof21) + ke_transformed(5,3); % Col 3 - element dof21
-    K(dof31,dof22) = K(dof31,dof22) + ke_transformed(5,4); % Col 4 - element dof22
-    K(dof31,dof31) = K(dof31,dof31) + ke_transformed(5,5); % Col 5 - element dof31
-    K(dof31,dof32) = K(dof31,dof32) + ke_transformed(5,6); % Col 6 - element dof32
+    K(dof31,dof11) = K(dof31,dof11) + ke(5,1); % Col 1 - element dof11
+    K(dof31,dof12) = K(dof31,dof12) + ke(5,2); % Col 2 - element dof12
+    K(dof31,dof21) = K(dof31,dof21) + ke(5,3); % Col 3 - element dof21
+    K(dof31,dof22) = K(dof31,dof22) + ke(5,4); % Col 4 - element dof22
+    K(dof31,dof31) = K(dof31,dof31) + ke(5,5); % Col 5 - element dof31
+    K(dof31,dof32) = K(dof31,dof32) + ke(5,6); % Col 6 - element dof32
     
     % Row 6 - element dof32
-    K(dof32,dof11) = K(dof32,dof11) + ke_transformed(6,1); % Col 1 - element dof11
-    K(dof32,dof12) = K(dof32,dof12) + ke_transformed(6,2); % Col 2 - element dof12
-    K(dof32,dof21) = K(dof32,dof21) + ke_transformed(6,3); % Col 3 - element dof21
-    K(dof32,dof22) = K(dof32,dof22) + ke_transformed(6,4); % Col 4 - element dof22
-    K(dof32,dof31) = K(dof32,dof31) + ke_transformed(6,5); % Col 5 - element dof31
-    K(dof32,dof32) = K(dof32,dof32) + ke_transformed(6,6); % Col 6 - element dof32
+    K(dof32,dof11) = K(dof32,dof11) + ke(6,1); % Col 1 - element dof11
+    K(dof32,dof12) = K(dof32,dof12) + ke(6,2); % Col 2 - element dof12
+    K(dof32,dof21) = K(dof32,dof21) + ke(6,3); % Col 3 - element dof21
+    K(dof32,dof22) = K(dof32,dof22) + ke(6,4); % Col 4 - element dof22
+    K(dof32,dof31) = K(dof32,dof31) + ke(6,5); % Col 5 - element dof31
+    K(dof32,dof32) = K(dof32,dof32) + ke(6,6); % Col 6 - element dof32
     
     
 end
