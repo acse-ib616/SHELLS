@@ -12,78 +12,58 @@ nu = 0.2; % Poisson coefficient
 t = 0.05; % Element thickness in m
 
 % Specifying nodal x-y coordinates
-NODES.coords = [0     0 ; % node 1 - x,y coordinates
-                2.5   0 ; % node 2 - x,y coordinates
-                5     0 ; % node 3 - x,y coordinates
-                7.5   0 ; % node 4 - x,y coordinates
-                10    0 ; % node 5 - x,y coordinates
-                0     1 ;
-                2.5   1 ;
-                5     1 ;
-                7.5   1 ;
-                10    1 ; % node 10 - x,y coordinates
-                1.25  0 ;
-                3.75  0 ; % node 12 - x,y coordinates
-                6.25  0 ;
-                8.75  0 ;
-                0    0.5;
-                1.25 0.5;
-                2.5  0.5;
-                3.75 0.5;
-                5    0.5; % node 19 - x,y coordinates
-                6.25 0.5;
-                7.5  0.5;
-                8.75 0.5;
-                10   0.5; % node 23 - x,y coordinates
-                1.25  1 ;
-                3.75  1 ;
-                6.25  1 ;
-                8.75  1]; % node 27 - x,y coordinates
-                
-NODES.dofs = [1   2 ;  % node 1 - dofs u1,v1 (1,2) - FIXED  
-              3   4 ;  
-              5   6 ;  
-              7   8 ;  
-              9  10 ; % node 5 - dof v7 (14) - FIXED
-              11 12 ;
-              13 14 ;  
-              15 16 ;
-              17 18 ;
-              19 20 ;
-              21 22 ;
-              23 24 ;
-              25 26 ;
-              27 28 ;
-              29 30 ;
-              31 32 ;
-              33 34 ;
-              35 36 ; 
-              37 38 ;
-              39 40 ;
-              41 42 ;
-              43 44 ;
-              45 46 ;
-              47 48 ;
-              49 50 ;
-              51 52 ;
-              53 54]; % node 27 - dofs u27,v27 (53,54) - FREE
+NODES.coords = zeros(99,2);
+for i=1:3
+    for j=1:33
+        NODES.coords((i-1)*33+j,:) = [(j-1)*0.3125,0.5*(i-1)];
+    end
+end
+
+NODES.dofs = zeros(99,2);
+for i=1:99
+    
+    NODES.dofs(i,:) = [2*i-1, 2*i];
+end
 % Note that node numbers are identified by their row number
      
 % Specifying element nodal connectivity (order does not matter)
-ELEMENTS = [1 2 6 11 16 15 ; % element 1
-            2 3 7 12 18 17 ; % element 2
-            3 4 8 13 20 19 ; % element 3
-            4 5 9 14 22 21 ;
-            7 6 2 24 16 17 ;
-            8 7 3 25 18 19 ;
-            9 8 4 26 20 21 ;
-            10 9 5 27 22 23]; % element 8 - element dofs u3,v3,u4,v4 (5,6,7,8)
-
+ELEMENTS = [1 3 67 2 35 34 ; % element 1
+            3 5 69 4 37 36 ; % element 2
+            5 7 71 6 39 38 ; % element 3
+            7 9 73 8 41 40 ;
+            9 11 75 10 43 42 ;
+            11 13 77 12 45 44 ;
+            13 15 79 14 47 46 ;
+            15 17 81 16 49 48 ; % element 8
+            17 19 83 18 51 50 ;
+            19 21 85 20 53 52 ;
+            21 23 87 22 55 54 ;
+            23 25 89 24 57 56 ;
+            25 27 91 26 59 58 ;
+            27 29 93 28 61 60 ;
+            29 31 95 30 63 62 ;
+            31 33 97 32 65 64 ; % element 16
+            69 67 3 68 35 36 ; 
+            71 69 5 70 37 38 ; 
+            73 71 7 72 39 40 ; 
+            75 73 9 74 41 42 ;
+            77 75 11 76 43 44 ;
+            79 77 13 78 45 46 ;
+            81 79 15 80 47 48 ;
+            83 81 17 82 49 50 ; 
+            85 83 19 84 51 52 ;
+            87 85 21 86 53 54 ;
+            89 87 23 88 55 56 ;
+            91 89 25 90 57 58 ;
+            93 91 27 92 59 60 ;
+            95 93 29 94 61 62 ;
+            97 95 31 96 63 64 ;
+            99 97 33 98 65 66]; % element 32
 % Degrees of freedom & other parameters
-dofs_free = [3:9,11:54]; % unknown nodal x-y dofs
-dofs_restrained = [1,2,10]; % known nodal x-y dofs due to BC (at nodes 1,7,18)
-nodes = size(NODES.coords,1); % no. of nodes i.e. 33
-elements = size(ELEMENTS,1); % no. of elements i.e. 10
+dofs_free = [3:65,67:198]; % unknown nodal x-y dofs
+dofs_restrained = [1,2,66]; % known nodal x-y dofs due to BC (at nodes 1,9)
+nodes = size(NODES.coords,1); % no. of nodes i.e. 52
+elements = size(ELEMENTS,1); % no. of elements i.e. 16
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%% ASSEMBLER MODULE %%%%%%%%%%%%%%%%%%%%%
@@ -111,10 +91,10 @@ for EL = 1:elements % loop through all elements & build stiffness matrix
     dof51 = NODES.dofs(n5,1); dof52 = NODES.dofs(n5,2);  % element node 5 - dofs
     dof61 = NODES.dofs(n6,1); dof62 = NODES.dofs(n6,2);  % element node 6 - dofs
     
-    [r,wr] = lgwt(2,0.0,1.0); % Gauss quadrature
+    [r,wr] = lgwt(4,0.0,1.0); % Gauss quadrature
+%     [r,wr] = md_gauss(2);
     s = r; ws = wr;
-    
-    
+        
     constants = E*t/(1-nu.^2); % Constants over element
     
 %     ke = k_mat(x1,x2,x3,x4,x5,x6,y1,y2,y3,y4,y5,y6,nu);
@@ -312,7 +292,7 @@ end
 
 % Constructing the global nodal force vector
 F = zeros(2*nodes,1); % initialising en empty a 54x1 column vector for convenience
-F(16) = -1e4; % The load P acts downwards on node 8 i.e. it affects global dof 16
+F(166) = -1e4; % The load P acts downwards on node 8 i.e. it affects global dof 16
 % There are no other nodal loads to apply
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -356,7 +336,7 @@ F(dofs_restrained) = fR; % full nodal force vector
 % with amplified deformed coordinate (for plotting purposes)
 NODES.new_coords = zeros(size(NODES.coords)); 
 NODES.amp_coords = zeros(size(NODES.coords)); 
-amp = 1000; % amplification factor for plotting purposes only 
+amp = 100; % amplification factor for plotting purposes only 
 for I = 1:size(NODES.coords,1)
     for J = 1:size(NODES.coords,2)    
         NODES.amp_coords(I,J) = NODES.coords(I,J) + U(NODES.dofs(I,J))*amp;
@@ -371,6 +351,7 @@ ymin = min(NODES.amp_coords(:,2)); ymax = max(NODES.amp_coords(:,2)); dify = yma
 % axis([xmin-difx*fac  xmax+difx*fac  ymin-dify*fac  ymax+dify*fac]);
 % Note that if the 'squished' structural shape bothers you, replace the
 % above line with 'axis equal'
+axis equal;
 
 for EL = 1:elements
     n1 = ELEMENTS(EL,1); n2 = ELEMENTS(EL,2); n3 = ELEMENTS(EL,3); % identify element node numbers
@@ -429,8 +410,8 @@ for react = 1:length(fR)
 end
 disp(' '); disp('Vertical equilibrium check:');
 disp(['Total vertical reactions = ',num2str(fR(2) + fR(3))]);
-disp(['Total applied vertical loads = ',num2str(F(16))]);
-if abs(fR(2) + fR(3) + F(16)) < 1e-6; disp('Ok.'); end
+disp(['Total applied vertical loads = ',num2str(F(166))]);
+if abs(fR(2) + fR(3) + F(166)) < 1e-6; disp('Ok.'); end
 disp(' '); disp('Horizontal equilibrium check:');
 disp(['Total horizontal reactions = ',num2str(fR(1))]);
 disp('Total applied horizontal loads = 0');
