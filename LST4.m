@@ -13,7 +13,7 @@ t = 0.05; % Element thickness in m
 
 % Dimensions of domain and elements in each direction
 nx = 16;
-ny = 2;
+ny = 8;
 n_el = nx*2*ny;
 Lx = 10;
 Ly = 1;
@@ -42,19 +42,19 @@ end
 ELEMENTS = zeros(n_el,6);
 for i=1:n_el
     if mod(floor(i/nx),2) == 0 && mod(i,nx)~= 0
-        ELEMENTS(i,:) = [2*mod(i,nx)-1+2*Nx*max(floor(i/nx)-1,0), 2*mod(i,nx)+2*Nx*max(floor(i/nx)-1,0)+1, 2*Nx+2*mod(i,nx)-1+2*Nx*max(floor(i/nx)-1,0), 2*mod(i,nx)+2*Nx*max(floor(i/nx)-1,0), Nx+2*mod(i,nx)+Nx*floor(i/nx), Nx+2*mod(i,nx)-1+Nx*floor(i/nx)];
+        ELEMENTS(i,:) = [2*mod(i,nx)-1+2*Nx*max(floor(i/nx)-floor(i/(2*nx)),0), 2*mod(i,nx)+2*Nx*max(floor(i/nx)-floor(i/(2*nx)),0)+1, 2*Nx+2*mod(i,nx)-1+2*Nx*max(floor(i/nx)-floor(i/(2*nx)),0), 2*mod(i,nx)+2*Nx*max(floor(i/nx)-floor(i/(2*nx)),0), Nx+2*mod(i,nx)+Nx*floor(i/nx), Nx+2*mod(i,nx)-1+Nx*floor(i/nx)];
     elseif mod(i,nx)== 0 && mod(floor(i/nx),2) ~= 0
-        ELEMENTS(i,:) = [Nx-2+2*Nx*max(floor(i/nx)-2,0), Nx+2*Nx*max(floor(i/nx)-2,0), Nx+2*Nx-2+2*Nx*max(floor(i/nx)-2,0), Nx-1+2*Nx*max(floor(i/nx)-2,0), 2*Nx-1+Nx*max(floor(i/nx)-1,0), 2*Nx-2+Nx*max(floor(i/nx)-1,0)];
+        ELEMENTS(i,:) = [Nx-2+2*Nx*max(floor(i/nx)-floor(i/(2*nx))-1,0), Nx+2*Nx*max(floor(i/nx)-floor(i/(2*nx))-1,0), Nx+2*Nx-2+2*Nx*max(floor(i/nx)-floor(i/(2*nx))-1,0), Nx-1+2*Nx*max(floor(i/nx)-floor(i/(2*nx))-1,0), -1+2*Nx*max(floor(i/nx)-floor(i/(2*nx)),0), -2+2*Nx*max(floor(i/nx)-floor(i/(2*nx)),0)]; %Nx+2*Nx-2+2*Nx*max(floor(i/nx)-floor(i/(2*nx))-1,0)
     elseif mod(i,nx)== 0 && mod(floor(i/nx),2) == 0
-        ELEMENTS(i,:) = [2*Nx*max(floor(i/nx)-2,1)+Nx, Nx+2*Nx*max(floor(i/nx)-2,1)-2, Nx+2*Nx*(max(floor(i/nx)-2,1)-1), Nx-1+2*Nx*max(floor(i/nx)-2,1), Nx+2*Nx*max(floor(i/nx)-2,1)-Nx-1, Nx+2*Nx*max(floor(i/nx)-2,1)-Nx];
+        ELEMENTS(i,:) = [2*Nx*max(floor(i/nx)-floor(i/(2*nx)),1)+Nx, Nx+2*Nx*max(floor(i/nx)-floor(i/(2*nx)),1)-2, Nx+2*Nx*(max(floor(i/nx)-floor(i/(2*nx)),1)-1), Nx-1+2*Nx*max(floor(i/nx)-floor(i/(2*nx)),1), Nx+2*Nx*max(floor(i/nx)-floor(i/(2*nx)),1)-Nx-1, Nx+2*Nx*max(floor(i/nx)-floor(i/(2*nx)),1)-Nx];
     else
-        ELEMENTS(i,:) = [2*Nx*max(floor(i/nx)-1,1)+2*mod(i,nx)+1, 2*mod(i,nx)+2*Nx*max(floor(i/nx)-1,1)-1, 2*mod(i,nx)+1+2*Nx*(max(floor(i/nx)-1,1)-1), 2*mod(i,nx)+2*Nx*max(floor(i/nx)-1,1), 2*mod(i,nx)+2*Nx*max(floor(i/nx)-1,1)-Nx, 2*mod(i,nx)+2*Nx*max(floor(i/nx)-1,1)-Nx+1];
+        ELEMENTS(i,:) = [2*Nx*max(floor(i/nx)-floor(i/(2*nx)),1)+2*mod(i,nx)+1, 2*mod(i,nx)+2*Nx*max(floor(i/nx)-floor(i/(2*nx)),1)-1, 2*mod(i,nx)+1+2*Nx*(max(floor(i/nx)-floor(i/(2*nx)),1)-1), 2*mod(i,nx)+2*Nx*max(floor(i/nx)-floor(i/(2*nx)),1), 2*mod(i,nx)+2*Nx*max(floor(i/nx)-floor(i/(2*nx)),1)-Nx, 2*mod(i,nx)+2*Nx*max(floor(i/nx)-floor(i/(2*nx)),1)-Nx+1];
     end  
 end
 
 % Degrees of freedom & other parameters
-dofs_free = [1:132,135:197,199:2*N]; % unknown nodal x-y dofs
-dofs_restrained = [133,134,198]; % known nodal x-y dofs due to BC (at nodes 1,9)
+dofs_free = [1:N-Nx,N-Nx+3:N+Nx-1,N+Nx+1:2*N]; % unknown nodal x-y dofs
+dofs_restrained = [N-Nx+1,N-Nx+2,N+Nx]; % known nodal x-y dofs due to BC (at nodes 1,9)
 nodes = size(NODES.coords,1); % no. of nodes i.e. 52
 elements = size(ELEMENTS,1); % no. of elements i.e. 16
 
@@ -282,7 +282,7 @@ end
 
 % Constructing the global nodal force vector
 F = zeros(2*nodes,1); % initialising en empty a 2Nx1 column vector for convenience
-F(166) = -1e4; % The load P acts downwards on node 166 i.e. it affects global dof 166*2
+F(N+1) = -1e4; % The load P acts downwards on node 166 i.e. it affects global dof 166*2
 % There are no other nodal loads to apply
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -400,8 +400,8 @@ for react = 1:length(fR)
 end
 disp(' '); disp('Vertical equilibrium check:');
 disp(['Total vertical reactions = ',num2str(fR(2) + fR(3))]);
-disp(['Total applied vertical loads = ',num2str(F(166))]);
-if abs(fR(2) + fR(3) + F(166)) < 1e-6; disp('Ok.'); end
+disp(['Total applied vertical loads = ',num2str(F(N+1))]);
+if abs(fR(2) + fR(3) + F(N+1)) < 1e-6; disp('Ok.'); end
 disp(' '); disp('Horizontal equilibrium check:');
 disp(['Total horizontal reactions = ',num2str(fR(1))]);
 disp('Total applied horizontal loads = 0');
