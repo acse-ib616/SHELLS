@@ -12,8 +12,8 @@ nu = 0.2; % Poisson coefficient
 t = 0.05; % Element thickness in m
 
 % Dimensions of domain and elements in each direction
-nx = 16;
-ny = 2;
+nx = 100;
+ny = 10;
 n_el = nx*2*ny;
 Lx = 10;
 Ly = 1;
@@ -41,19 +41,19 @@ end
 ELEMENTS = zeros(n_el,3);
 for i=1:n_el
     if mod(floor(i/nx),2) == 0 && mod(i,nx)~= 0
-        ELEMENTS(i,:) = [mod(i,nx)+Nx*max(floor(i/nx)-1,0), mod(i,nx)+Nx*max(floor(i/nx)-1,0)+1, Nx+mod(i,nx)+Nx*max(floor(i/nx)-1,0)];
+        ELEMENTS(i,:) = [mod(i,nx)+Nx*max(floor(i/nx)-floor(i/(2*nx)),0), mod(i,nx)+Nx*max(floor(i/nx)-floor(i/(2*nx)),0)+1, Nx+mod(i,nx)+Nx*max(floor(i/nx)-floor(i/(2*nx)),0)];
     elseif mod(i,nx)== 0 && mod(floor(i/nx),2) ~= 0
-        ELEMENTS(i,:) = [Nx-1+Nx*max(floor(i/nx)-2,0), Nx+Nx*max(floor(i/nx)-2,0), Nx+Nx-1+Nx*max(floor(i/nx)-2,0)];
+        ELEMENTS(i,:) = [Nx-1+Nx*max(floor(i/nx)-floor(i/(2*nx))-1,0), Nx+Nx*max(floor(i/nx)-floor(i/(2*nx))-1,0), Nx+Nx-1+Nx*max(floor(i/nx)-floor(i/(2*nx))-1,0)];
     elseif mod(i,nx)== 0 && mod(floor(i/nx),2) == 0
-        ELEMENTS(i,:) = [Nx*max(floor(i/nx)-2,1)+Nx, Nx+Nx*max(floor(i/nx)-2,1)-1, Nx+Nx*(max(floor(i/nx)-2,1)-1)];
+        ELEMENTS(i,:) = [Nx*max(floor(i/nx)-floor(i/(2*nx)),1)+Nx, Nx+Nx*max(floor(i/nx)-floor(i/(2*nx)),1)-1, Nx+Nx*(max(floor(i/nx)-floor(i/(2*nx)),1)-1)];
     else
-        ELEMENTS(i,:) = [Nx*max(floor(i/nx)-1,1)+mod(i,nx)+1, mod(i,nx)+Nx*max(floor(i/nx)-1,1), mod(i,nx)+1+Nx*(max(floor(i/nx)-1,1)-1)];
+        ELEMENTS(i,:) = [Nx*max(floor(i/nx)-floor(i/(2*nx)),1)+mod(i,nx)+1, mod(i,nx)+Nx*max(floor(i/nx)-floor(i/(2*nx)),1), mod(i,nx)+1+Nx*(max(floor(i/nx)-floor(i/(2*nx)),1)-1)];
     end  
 end
 
 % Degrees of freedom & other parameters
-dofs_free = [1:34,37:67,69:2*N]; % unknown nodal x-y dofs (at nodes 3,4,5)
-dofs_restrained = [35,36,68]; % known nodal x-y dofs due to BC (at nodes 1,2)
+dofs_free = [1:N-Nx,N-Nx+3:N+Nx-1,N+Nx+1:2*N]; % unknown nodal x-y dofs
+dofs_restrained = [N-Nx+1,N-Nx+2,N+Nx]; % known nodal x-y dofs due to BC (at nodes 1,9)
 nodes = size(NODES.coords,1); % no. of nodes i.e. 6
 elements = size(ELEMENTS,1); % no. of elements i.e.
 
@@ -161,7 +161,7 @@ end
 
 % Constructing the global nodal force vector
 F = zeros(2*nodes,1); % initialising en empty a 12x1 column vector for convenience
-F(52) = -1e4; % The load P acts downwards on node 26 i.e. it affects global dof 2*26
+F(N+1) = -1e4; % The load P acts downwards on node 26 i.e. it affects global dof 2*26
 % There are no other nodal loads to apply
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -264,10 +264,10 @@ for react = 1:length(fR)
     disp(['The value of the reaction at dof ',num2str(dofs_restrained(react)),' is ',num2str(fR(react))]);
 end
 disp(' '); disp('Vertical equilibrium check:');
-disp(['Total vertical reactions = ',num2str(F(2) + F(4) + F(6) + F(8) + F(12))]);
-disp(['Total applied vertical loads = ',num2str(F(10))]);
-if abs(F(2) + F(4) + F(6) + F(8) + F(10) + F(12)) < 1e-6; disp('Ok.'); end
+disp(['Total vertical reactions = ',num2str(fR(2) + fR(3))]);
+disp(['Total applied vertical loads = ',num2str(F(N+1))]);
+if abs(fR(2) + fR(3) + F(N+1)) < 1e-6; disp('Ok.'); end
 disp(' '); disp('Horizontal equilibrium check:');
-disp(['Total horizontal reactions = ',num2str(F(1) + F(3) + F(5) + F(7) + F(11))]);
+disp(['Total horizontal reactions = ',num2str(fR(1))]);
 disp('Total applied horizontal loads = 0');
-if abs(F(1) + F(3) + F(5) + F(7) + F(9) + F(11)) < 1e-6; disp('Ok.'); end
+if abs(fR(1)) < 1e-6; disp('Ok.'); end
