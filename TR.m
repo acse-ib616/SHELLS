@@ -12,8 +12,8 @@ nu = 0.2; % Poisson coefficient
 t = 0.05; % Element thickness in m
 
 % Dimensions of domain and elements in each direction
-nx = 16;
-ny = 2;
+nx = 100;
+ny = 10;
 n_el = nx*2*ny;
 Lx = 10;
 Ly = 1;
@@ -25,6 +25,8 @@ N_LST = Nx_LST*Ny_LST; % Total number of nodes
 Nx = nx+1; % Nodes in x direction (TR)
 Ny = ny+1; % Nodes in y direction (TR)
 N = Nx*Ny; % Total number of nodes (TR)
+dx = Lx/nx; % Distance between nodes in x
+dy = Ly/ny; % Distance between nodes in y
 
 % Specifying nodal x-y coordinates
 NODES.coords_LST = zeros(N_LST,2);
@@ -74,8 +76,8 @@ end
 
 
 % Degrees of freedom & other parameters
-dofs_free = [1:N_LST-Nx_LST,N_LST-Nx_LST+3:N_LST+Nx_LST-1,N_LST+Nx_LST+1:2*N_LST]; % unknown nodal x-y dofs
-dofs_restrained = [N_LST-Nx_LST+1,N_LST-Nx_LST+2,N_LST+Nx_LST]; % known nodal x-y dofs due to BC (at nodes 1,9)
+dofs_free = [1:(floor(N/2)+1)*3-3*floor(Nx/2)-3,(floor(N/2)+1)*3-3*floor(Nx/2)+1:(floor(N/2)+1)*3+3*floor(Nx/2)-2,(floor(N/2)+1)*3+3*floor(Nx/2)+1:3*N]; % unknown nodal x-y dofs
+dofs_restrained = [(floor(N/2)+1)*3-3*floor(17/2)-2,(floor(N/2)+1)*3-3*floor(Nx/2)-1,(floor(N/2)+1)*3-3*floor(Nx/2),(floor(N/2)+1)*3+3*floor(Nx/2)-1,(floor(N/2)+1)*3+3*floor(Nx/2)]; % known nodal x-y dofs due to BC (at nodes 1,9)
 nodes_LST = size(NODES.coords_LST,1); % no. of nodes i.e. 52
 nodes = size(NODES.coords,1); % no. of nodes i.e. 52
 elements = size(ELEMENTS,1); % no. of elements i.e. 16
@@ -87,12 +89,12 @@ elements = size(ELEMENTS,1); % no. of elements i.e. 16
 K = zeros(3*N); % initialising en empty 66x66 matrix; 33 nodes at 2 dofs/node
 for EL = 1:elements % loop through all elements & build stiffness matrix
     n1_LST = ELEMENTS_LST(EL,1); n2_LST = ELEMENTS_LST(EL,2); n3_LST = ELEMENTS_LST(EL,3); % identify element node numbers
-    n4_LST = ELEMENTS_LST(EL,4); n5 = ELEMENTS_LST(EL,5); n6_LST = ELEMENTS_LST(EL,6); % identify element node numbers
+    n4_LST = ELEMENTS_LST(EL,4); n5_LST = ELEMENTS_LST(EL,5); n6_LST = ELEMENTS_LST(EL,6); % identify element node numbers
     x1 = NODES.coords_LST(n1_LST,1); y1 = NODES.coords_LST(n1_LST,2); % element node 1 - x,y coordinates
     x2 = NODES.coords_LST(n2_LST,1); y2 = NODES.coords_LST(n2_LST,2); % element node 2 - x,y coordinates
     x3 = NODES.coords_LST(n3_LST,1); y3 = NODES.coords_LST(n3_LST,2); % element node 3 - x,y coordinates
     x4 = NODES.coords_LST(n4_LST,1); y4 = NODES.coords_LST(n4_LST,2); % element node 1 - x,y coordinates
-    x5 = NODES.coords_LST(n5,1); y5 = NODES.coords_LST(n5,2); % element node 2 - x,y coordinates
+    x5 = NODES.coords_LST(n5_LST,1); y5 = NODES.coords_LST(n5_LST,2); % element node 2 - x,y coordinates
     x6 = NODES.coords_LST(n6_LST,1); y6 = NODES.coords_LST(n6_LST,2); % element node 3 - x,y coordinates
     
     
@@ -121,6 +123,9 @@ for EL = 1:elements % loop through all elements & build stiffness matrix
     ke_LST = 0.5*constants*ke_LST; % element stiffness. The 0.5 comes from integrating the area of a triangle (bh/2)
     
     % Transformation to TR
+    
+    y21 = y2-y1; x21 = x2-x1; y32 = y3-y2; x32 = x3-x2;
+    y13 = y1-y3; x13 = x1-x3;
     
     T = [1 0 0 0 0 0 0 0 0;
          0 1 0 0 0 0 0 0 0;
@@ -242,7 +247,7 @@ end
 
 % Constructing the global nodal force vector
 F = zeros(3*N,1); % initialising en empty a 2Nx1 column vector for convenience
-F(N+1) = -1e4; % The load P acts downwards on node 166 i.e. it affects global dof 166*2
+F((floor(N/2)+1)*3-1) = -1e4; % The load P acts downwards on node 166 i.e. it affects global dof 166*2
 % There are no other nodal loads to apply
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -325,12 +330,12 @@ for EL = 1:elements
     
     
 %     Plotting nodes last!
-    plot(x1,y1,'ko','Markersize',7,'MarkerFaceColor','w');
-    plot(x2,y2,'ko','Markersize',7,'MarkerFaceColor','w');
-    plot(x3,y3,'ko','Markersize',7,'MarkerFaceColor','w');
-    plot(x1_amp,y1_amp,'ko','Markersize',7,'MarkerFaceColor','y');
-    plot(x2_amp,y2_amp,'ko','Markersize',7,'MarkerFaceColor','y');
-    plot(x3_amp,y3_amp,'ko','Markersize',7,'MarkerFaceColor','y');
+%     plot(x1,y1,'ko','Markersize',7,'MarkerFaceColor','w');
+%     plot(x2,y2,'ko','Markersize',7,'MarkerFaceColor','w');
+%     plot(x3,y3,'ko','Markersize',7,'MarkerFaceColor','w');
+%     plot(x1_amp,y1_amp,'ko','Markersize',7,'MarkerFaceColor','y');
+%     plot(x2_amp,y2_amp,'ko','Markersize',7,'MarkerFaceColor','y');
+%     plot(x3_amp,y3_amp,'ko','Markersize',7,'MarkerFaceColor','y');
 end
 xlabel('x coordinate');
 ylabel('y coordinate');
@@ -348,8 +353,8 @@ for react = 1:length(fR)
 end
 disp(' '); disp('Vertical equilibrium check:');
 disp(['Total vertical reactions = ',num2str(fR(2) + fR(3))]);
-disp(['Total applied vertical loads = ',num2str(F(N+1))]);
-if abs(fR(2) + fR(3) + F(N_LST+1)) < 1e-6; disp('Ok.'); end
+disp(['Total applied vertical loads = ',num2str(F((floor(N/2)+1)*3-1))]);
+if abs(fR(2) + fR(3) + F((floor(N/2)+1)*3-1)) < 1e-6; disp('Ok.'); end
 disp(' '); disp('Horizontal equilibrium check:');
 disp(['Total horizontal reactions = ',num2str(fR(1))]);
 disp('Total applied horizontal loads = 0');
