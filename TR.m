@@ -352,9 +352,9 @@ for react = 1:length(fR)
     disp(['The value of the reaction at dof ',num2str(dofs_restrained(react)),' is ',num2str(fR(react))]);
 end
 disp(' '); disp('Vertical equilibrium check:');
-disp(['Total vertical reactions = ',num2str(fR(2) + fR(3))]);
+disp(['Total vertical reactions = ',num2str(fR(2) + fR(4))]);
 disp(['Total applied vertical loads = ',num2str(F((floor(N/2)+1)*3-1))]);
-if abs(fR(2) + fR(3) + F((floor(N/2)+1)*3-1)) < 1e-6; disp('Ok.'); end
+if abs(fR(2) + fR(4) + F((floor(N/2)+1)*3-1)) < 1e-6; disp('Ok.'); end
 disp(' '); disp('Horizontal equilibrium check:');
 disp(['Total horizontal reactions = ',num2str(fR(1))]);
 disp('Total applied horizontal loads = 0');
