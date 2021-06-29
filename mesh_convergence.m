@@ -40,5 +40,5 @@ title('Midspan vertical displacement');
 
 %% ABAQUS
 
-LST_dofs_A = [13202];
-LST_A = [0.00123285];
+LST_dofs_A = [13202,26082];
+LST_A = [0.00123285,0.00123291];
