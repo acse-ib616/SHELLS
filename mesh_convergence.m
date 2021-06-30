@@ -26,15 +26,15 @@ TR = [0.001096762300234,0.001151110756730,0.001197741821396,0.001211703000320,..
 % title('Midspan vertical displacement');
 
 figure;
-plot(Euler./CST,1./CST_dofs);
+plot(1./CST_dofs,Euler./CST);
 grid on;
-ylabel('1/DOFs'); xlabel('EB/CST');
+xlabel('1/DOFs'); ylabel('EB/CST');
 title('Midspan vertical displacement');
 
 figure;
-plot(Euler./TR,1./TR_dofs);
+plot(1./TR_dofs,Euler./TR);
 grid on;
-ylabel('1/DOFs'); xlabel('EB/TR');
+xlabel('1/DOFs'); ylabel('EB/TR');
 title('Midspan vertical displacement');
 
 
@@ -44,9 +44,9 @@ LST_dofs_A = [594,2210,8514,13202,20930,26082];
 LST_A = [0.00122808,0.00123029,0.00123223,0.00123285,0.0012329,0.00123291];
 
 figure;
-plot(Euler./LST,1./LST_dofs,Euler./LST_A,1./LST_dofs_A);
+plot(1./LST_dofs,Euler./LST,1./LST_dofs_A,Euler./LST_A);
 grid on;
-ylabel('1/DOFs'); xlabel('EB/LST');
+xlabel('1/DOFs'); ylabel('EB/LST');
 title('Midspan vertical displacement');
 legend('MATLAB','ABAQUS');
 
@@ -55,8 +55,8 @@ CST_dofs_A = [594,2210,5346,10302,20930];
 CST_A = [0.00106495,0.00118384,0.00120405,0.00121429,0.00122499];
 
 figure;
-plot(Euler./CST,1./CST_dofs,Euler./CST_A,1./CST_dofs_A);
+plot(1./CST_dofs,Euler./CST,1./CST_dofs_A,Euler./CST_A);
 grid on;
-ylabel('1/DOFs'); xlabel('EB/CST');
+xlabel('1/DOFs'); ylabel('EB/CST');
 title('Midspan vertical displacement');
 legend('MATLAB','ABAQUS');
