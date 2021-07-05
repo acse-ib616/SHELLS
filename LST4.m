@@ -12,8 +12,8 @@ nu = 0.2; % Poisson coefficient
 t = 0.05; % Element thickness in m
 
 % Dimensions of domain and elements in each direction
-nx = 16;
-ny = 8;
+nx = 80;
+ny = 32;
 n_el = nx*2*ny;
 Lx = 10;
 Ly = 1;
@@ -90,21 +90,21 @@ for EL = 1:elements % loop through all elements & build stiffness matrix
         
     constants = E*t/(1-nu.^2); % Constants over element
     
-%     ke = k_mat(x1,x2,x3,x4,x5,x6,y1,y2,y3,y4,y5,y6,nu);
-    ke = zeros(12,12);
-    
-    for m=1:length(r)
-        for n=1:length(s)
-            kers = k_mat2(x1,x2,x3,x4,x5,x6,y1,y2,y3,y4,y5,y6,nu,r(m),s(n));   
-            
-            ke = ke+kers.*wr(m).*ws(n);              
-        end
-    end
+    ke = k_mat(x1,x2,x3,y1,y2,y3,nu);
+%     ke = zeros(12,12);
+%     
+%     for m=1:length(r)
+%         for n=1:length(s)
+%             kers = k_mat(x1,x2,x3,y1,y2,y3,nu,r(m),s(n));   
+%             
+%             ke = ke+kers.*wr(m).*ws(n);              
+%         end
+%     end
     
     
 %     ke = triu(ke)+triu(ke,1)'; % mirror upper matrix to the lower half
 
-    ke = 0.5*constants*ke; % element stiffness. The 0.5 comes from integrating the area of a triangle (bh/2)
+    ke = constants*ke; % element stiffness. The 0.5 comes from integrating the area of a triangle (bh/2)
         
     
     % Updating global stiffness matrix [K] coefficients 
@@ -371,18 +371,18 @@ for EL = 1:elements
     
     
 %     Plotting nodes last!
-    plot(x1,y1,'ko','Markersize',7,'MarkerFaceColor','w');
-    plot(x4,y4,'ko','Markersize',7,'MarkerFaceColor','w');
-    plot(x2,y2,'ko','Markersize',7,'MarkerFaceColor','w');
-    plot(x5,y5,'ko','Markersize',7,'MarkerFaceColor','w');
-    plot(x3,y3,'ko','Markersize',7,'MarkerFaceColor','w');
-    plot(x6,y6,'ko','Markersize',7,'MarkerFaceColor','w');
-    plot(x1_amp,y1_amp,'ko','Markersize',7,'MarkerFaceColor','y');  
-    plot(x4_amp,y4_amp,'ko','Markersize',7,'MarkerFaceColor','y');
-    plot(x2_amp,y2_amp,'ko','Markersize',7,'MarkerFaceColor','y');
-    plot(x5_amp,y5_amp,'ko','Markersize',7,'MarkerFaceColor','y');
-    plot(x3_amp,y3_amp,'ko','Markersize',7,'MarkerFaceColor','y');
-    plot(x6_amp,y6_amp,'ko','Markersize',7,'MarkerFaceColor','y');
+%     plot(x1,y1,'ko','Markersize',7,'MarkerFaceColor','w');
+%     plot(x4,y4,'ko','Markersize',7,'MarkerFaceColor','w');
+%     plot(x2,y2,'ko','Markersize',7,'MarkerFaceColor','w');
+%     plot(x5,y5,'ko','Markersize',7,'MarkerFaceColor','w');
+%     plot(x3,y3,'ko','Markersize',7,'MarkerFaceColor','w');
+%     plot(x6,y6,'ko','Markersize',7,'MarkerFaceColor','w');
+%     plot(x1_amp,y1_amp,'ko','Markersize',7,'MarkerFaceColor','y');  
+%     plot(x4_amp,y4_amp,'ko','Markersize',7,'MarkerFaceColor','y');
+%     plot(x2_amp,y2_amp,'ko','Markersize',7,'MarkerFaceColor','y');
+%     plot(x5_amp,y5_amp,'ko','Markersize',7,'MarkerFaceColor','y');
+%     plot(x3_amp,y3_amp,'ko','Markersize',7,'MarkerFaceColor','y');
+%     plot(x6_amp,y6_amp,'ko','Markersize',7,'MarkerFaceColor','y');
 end
 xlabel('x coordinate');
 ylabel('y coordinate');

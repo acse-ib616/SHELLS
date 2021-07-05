@@ -12,8 +12,8 @@ nu = 0.2; % Poisson coefficient
 t = 0.05; % Element thickness in m
 
 % Dimensions of domain and elements in each direction
-nx = 100;
-ny = 10;
+nx = 20;
+ny = 8;
 n_el = nx*2*ny;
 Lx = 10;
 Ly = 1;
@@ -29,12 +29,6 @@ dx = Lx/nx; % Distance between nodes in x
 dy = Ly/ny; % Distance between nodes in y
 
 % Specifying nodal x-y coordinates
-NODES.coords_LST = zeros(N_LST,2);
-for i=1:Ny_LST
-    for j=1:Nx_LST
-        NODES.coords_LST((i-1)*Nx_LST+j,:) = [(j-1)*dx_LST,dy_LST*(i-1)];
-    end
-end
 NODES.coords = zeros(N,2);
 for i=1:Ny
     for j=1:Nx
@@ -49,18 +43,7 @@ end
 % Note that node numbers are identified by their row number
      
 % Specifying element nodal connectivity (order does not matter)
-ELEMENTS_LST = zeros(n_el,6);
-for i=1:n_el
-    if mod(floor(i/nx),2) == 0 && mod(i,nx)~= 0
-        ELEMENTS_LST(i,:) = [2*mod(i,nx)-1+2*Nx_LST*max(floor(i/nx)-floor(i/(2*nx)),0), 2*mod(i,nx)+2*Nx_LST*max(floor(i/nx)-floor(i/(2*nx)),0)+1, 2*Nx_LST+2*mod(i,nx)-1+2*Nx_LST*max(floor(i/nx)-floor(i/(2*nx)),0), 2*mod(i,nx)+2*Nx_LST*max(floor(i/nx)-floor(i/(2*nx)),0), Nx_LST+2*mod(i,nx)+Nx_LST*floor(i/nx), Nx_LST+2*mod(i,nx)-1+Nx_LST*floor(i/nx)];
-    elseif mod(i,nx)== 0 && mod(floor(i/nx),2) ~= 0
-        ELEMENTS_LST(i,:) = [Nx_LST-2+2*Nx_LST*max(floor(i/nx)-floor(i/(2*nx))-1,0), Nx_LST+2*Nx_LST*max(floor(i/nx)-floor(i/(2*nx))-1,0), Nx_LST+2*Nx_LST-2+2*Nx_LST*max(floor(i/nx)-floor(i/(2*nx))-1,0), Nx_LST-1+2*Nx_LST*max(floor(i/nx)-floor(i/(2*nx))-1,0), -1+2*Nx_LST*max(floor(i/nx)-floor(i/(2*nx)),0), -2+2*Nx_LST*max(floor(i/nx)-floor(i/(2*nx)),0)]; %Nx+2*Nx-2+2*Nx*max(floor(i/nx)-floor(i/(2*nx))-1,0)
-    elseif mod(i,nx)== 0 && mod(floor(i/nx),2) == 0
-        ELEMENTS_LST(i,:) = [2*Nx_LST*max(floor(i/nx)-floor(i/(2*nx)),1)+Nx_LST, Nx_LST+2*Nx_LST*max(floor(i/nx)-floor(i/(2*nx)),1)-2, Nx_LST+2*Nx_LST*(max(floor(i/nx)-floor(i/(2*nx)),1)-1), Nx_LST-1+2*Nx_LST*max(floor(i/nx)-floor(i/(2*nx)),1), Nx_LST+2*Nx_LST*max(floor(i/nx)-floor(i/(2*nx)),1)-Nx_LST-1, Nx_LST+2*Nx_LST*max(floor(i/nx)-floor(i/(2*nx)),1)-Nx_LST];
-    else
-        ELEMENTS_LST(i,:) = [2*Nx_LST*max(floor(i/nx)-floor(i/(2*nx)),1)+2*mod(i,nx)+1, 2*mod(i,nx)+2*Nx_LST*max(floor(i/nx)-floor(i/(2*nx)),1)-1, 2*mod(i,nx)+1+2*Nx_LST*(max(floor(i/nx)-floor(i/(2*nx)),1)-1), 2*mod(i,nx)+2*Nx_LST*max(floor(i/nx)-floor(i/(2*nx)),1), 2*mod(i,nx)+2*Nx_LST*max(floor(i/nx)-floor(i/(2*nx)),1)-Nx_LST, 2*mod(i,nx)+2*Nx_LST*max(floor(i/nx)-floor(i/(2*nx)),1)-Nx_LST+1];
-    end  
-end
+
 ELEMENTS = zeros(n_el,3);
 for i=1:n_el
     if mod(floor(i/nx),2) == 0 && mod(i,nx)~= 0
@@ -78,7 +61,6 @@ end
 % Degrees of freedom & other parameters
 dofs_free = [1:(floor(N/2)+1)*3-3*floor(Nx/2)-3,(floor(N/2)+1)*3-3*floor(Nx/2)+1:(floor(N/2)+1)*3+3*floor(Nx/2)-2,(floor(N/2)+1)*3+3*floor(Nx/2)+1:3*N]; % unknown nodal x-y dofs
 dofs_restrained = [(floor(N/2)+1)*3-3*floor(17/2)-2,(floor(N/2)+1)*3-3*floor(Nx/2)-1,(floor(N/2)+1)*3-3*floor(Nx/2),(floor(N/2)+1)*3+3*floor(Nx/2)-1,(floor(N/2)+1)*3+3*floor(Nx/2)]; % known nodal x-y dofs due to BC (at nodes 1,9)
-nodes_LST = size(NODES.coords_LST,1); % no. of nodes i.e. 52
 nodes = size(NODES.coords,1); % no. of nodes i.e. 52
 elements = size(ELEMENTS,1); % no. of elements i.e. 16
 
@@ -88,17 +70,13 @@ elements = size(ELEMENTS,1); % no. of elements i.e. 16
 % Constructing the global stiffness matrix
 K = zeros(3*N); % initialising en empty 66x66 matrix; 33 nodes at 2 dofs/node
 for EL = 1:elements % loop through all elements & build stiffness matrix
-    n1_LST = ELEMENTS_LST(EL,1); n2_LST = ELEMENTS_LST(EL,2); n3_LST = ELEMENTS_LST(EL,3); % identify element node numbers
-    n4_LST = ELEMENTS_LST(EL,4); n5_LST = ELEMENTS_LST(EL,5); n6_LST = ELEMENTS_LST(EL,6); % identify element node numbers
-    x1 = NODES.coords_LST(n1_LST,1); y1 = NODES.coords_LST(n1_LST,2); % element node 1 - x,y coordinates
-    x2 = NODES.coords_LST(n2_LST,1); y2 = NODES.coords_LST(n2_LST,2); % element node 2 - x,y coordinates
-    x3 = NODES.coords_LST(n3_LST,1); y3 = NODES.coords_LST(n3_LST,2); % element node 3 - x,y coordinates
-    x4 = NODES.coords_LST(n4_LST,1); y4 = NODES.coords_LST(n4_LST,2); % element node 1 - x,y coordinates
-    x5 = NODES.coords_LST(n5_LST,1); y5 = NODES.coords_LST(n5_LST,2); % element node 2 - x,y coordinates
-    x6 = NODES.coords_LST(n6_LST,1); y6 = NODES.coords_LST(n6_LST,2); % element node 3 - x,y coordinates
-    
     
     n1 = ELEMENTS(EL,1); n2 = ELEMENTS(EL,2); n3 = ELEMENTS(EL,3); % identify element node numbers
+    
+    x1 = NODES.coords(n1,1); y1 = NODES.coords(n1,2); % element node 1 - x,y coordinates
+    x2 = NODES.coords(n2,1); y2 = NODES.coords(n2,2); % element node 2 - x,y coordinates
+    x3 = NODES.coords(n3,1); y3 = NODES.coords(n3,2); % element node 3 - x,y coordinates
+    
     dof11 = NODES.dofs(n1,1); dof12 = NODES.dofs(n1,2); dof13 = NODES.dofs(n1,3);  % element node 1 - dofs
     dof21 = NODES.dofs(n2,1); dof22 = NODES.dofs(n2,2); dof23 = NODES.dofs(n2,3); % element node 2 - dofs
     dof31 = NODES.dofs(n3,1); dof32 = NODES.dofs(n3,2); dof33 = NODES.dofs(n3,3); % element node 3 - dofs
@@ -109,18 +87,10 @@ for EL = 1:elements % loop through all elements & build stiffness matrix
         
     constants = E*t/(1-nu.^2); % Constants over element
     
-    ke_LST = zeros(12,12);
-    
-    for m=1:length(r)
-        for n=1:length(s)
-            kers = k_mat2(x1,x2,x3,x4,x5,x6,y1,y2,y3,y4,y5,y6,nu,r(m),s(n));   
-            
-            ke_LST = ke_LST+kers.*wr(m).*ws(n);              
-        end
-    end
+    ke_LST = k_mat(x1,x2,x3,y1,y2,y3,nu);
     
 
-    ke_LST = 0.5*constants*ke_LST; % element stiffness. The 0.5 comes from integrating the area of a triangle (bh/2)
+    ke_LST = constants*ke_LST; % element stiffness. The 0.5 comes from integrating the area of a triangle (bh/2)
     
     % Transformation to TR
     
