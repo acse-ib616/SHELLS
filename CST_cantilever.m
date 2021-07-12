@@ -12,8 +12,8 @@ nu = 0.3; % Poisson coefficient
 t = 10; % Element thickness in m
 
 % Dimensions of domain and elements in each direction
-nx = 40;
-ny = 2;
+nx = 80*6;
+ny = 4*6;
 n_el = nx*2*ny;
 Lx = 2000;
 Ly = 100;
@@ -56,6 +56,8 @@ elements = size(ELEMENTS,1); % no. of elements i.e.
 %%%%%%%%%%%%%%%%%%%%% ASSEMBLER MODULE %%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Constructing the global stiffness matrix
+tic;
+
 K = zeros(2*nodes); % initialising en empty 12x12 matrix; 6 nodes at 2 dofs/node
 for EL = 1:elements % loop through all elements & build stiffness matrix
     n1 = ELEMENTS(EL,1); n2 = ELEMENTS(EL,2); % identify element node numbers
@@ -141,6 +143,9 @@ for EL = 1:elements % loop through all elements & build stiffness matrix
     
     
 end
+disp('Hola ');
+t1 = toc;
+disp(['Matlab exec time = ',num2str(t1)]);
 
 % Constructing the global nodal force vector
 F = zeros(2*nodes,1); % initialising en empty a 12x1 column vector for convenience
@@ -259,8 +264,15 @@ F(2*N-ny*2-1) = -1e5;
 coords = reshape(NODES.coords',1,[]);
 elem = uint64(reshape(ELEMENTS',1,[]));
 
+
+
 mex CST_K.cpp
-K_sparse = CST_K(E,nu,t,F',coords,elem,uint64(dofs_free),uint64(dofs_restrained));
+tic;
+K_sparse = CST_K(E,nu,t,coords,elem);
+
+t1 = toc;
+
+disp(['C++ exec time = ',num2str(t1)]);
 
 figure;
 spy(K_sparse);

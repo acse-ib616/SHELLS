@@ -30,30 +30,19 @@ public:
 
         // Change inputs into vectors, which are easier to manipulate in C++ and can link with sparse solvers
         // and matrix classes. Values are stored in ROW-MAJOR order in the vectors (A[i][j] = v[i*columns +j])
-        matlab::data::TypedArray<double> F_Array = std::move(inputs[3]);
-        std::vector<double> F(F_Array.begin(), F_Array.end()); // Force nodal vector
-
-        matlab::data::TypedArray<double> coords_Array = std::move(inputs[4]);
+        matlab::data::TypedArray<double> coords_Array = std::move(inputs[3]);
         std::vector<double> node_coords(coords_Array.begin(), coords_Array.end()); // Node coordinates
-
-        matlab::data::TypedArray<uint64_t> els_Array = std::move(inputs[5]);
+        matlab::data::TypedArray<uint64_t> els_Array = std::move(inputs[4]);
         std::vector<uint64_t> ELEMENTS(els_Array.begin(), els_Array.end()); // Nodal connectivity
 
-        std::cout << ELEMENTS[12] << std::endl;
-
-        matlab::data::TypedArray<uint64_t> dfree_Array = std::move(inputs[6]);
-        std::vector<uint64_t> dofs_free(dfree_Array.begin(), dfree_Array.end()); // FREE dofs
-
-        matlab::data::TypedArray<uint64_t> drest_Array = std::move(inputs[7]);
-        std::vector<uint64_t> dofs_restrained(drest_Array.begin(), drest_Array.end()); // FIXED dofs
-
-        std::cout << dofs_free[12] << std::endl;
-
+        // Initialise sparse K matrix vectors to be passed by reference to the function that assembles K
         std::vector<uint64_t> col_index, row_position;
         std::vector<double> values;
 
+        // Call function to assemble K
         CST_K(nu, E, t, node_coords, ELEMENTS, col_index, row_position, values);
 
+        // Change row_position vector to include a row index for each NNZ value
         uint64_t r, r_next, row_nnzs;
         std::vector<uint64_t> rows;
         for (uint64_t i = 0; i < row_position.size() - 1; i++)
@@ -68,7 +57,7 @@ public:
             }
         }
 
-        // Convert stiffness matrix to output for MATLAB
+        // Build sparse matrix object for output to MATLAB. This is taken from an example in the MATHWROKS documentation
         size_t nnz = values.size();
 
         std::cout << "Size: " << values.size() << std::endl;
@@ -88,6 +77,7 @@ public:
         std::for_each(col_index.begin(), col_index.end(), [&](const size_t &e)
                       { *(colsPtr++) = e; });
 
+        // Assign MEX function output
         outputs[0] = factory.createSparseArray<double>({node_coords.size(), node_coords.size()}, nnz, std::move(values_p), std::move(rows_p), std::move(cols_p));
     }
 
@@ -129,6 +119,7 @@ public:
         }
     }
 
+    // CST element stiffness matrix
     std::vector<double> k_CST(double nu, double E, double t, double x1, double x2, double x3, double y1, double y2, double y3)
     {
         std::vector<double> k(36, 0);
@@ -173,17 +164,20 @@ public:
         return k;
     }
 
+    // This function assembles the global stiffness matrix for CST elements
     void CST_K(double nu, double E, double t, std::vector<double> node_coords, std::vector<uint64_t> ELEMENTS, std::vector<uint64_t> &col_index, std::vector<uint64_t> &row_position, std::vector<double> &values)
     {
-        uint64_t els = ELEMENTS.size() / 3;      // Number of elements
-        uint64_t nodes = node_coords.size() / 2; // Number of nodes
-        uint64_t n_dofs = node_coords.size();    // Number of DOFs
-        double x1, x2, x3, y1, y2, y3;
-        uint64_t n1, n2, n3, dof11, dof12, dof21, dof22, dof31, dof32;
+        uint64_t els = ELEMENTS.size() / 3;                            // Number of elements
+        uint64_t nodes = node_coords.size() / 2;                       // Number of nodes
+        uint64_t n_dofs = node_coords.size();                          // Number of DOFs
+        double x1, x2, x3, y1, y2, y3;                                 // Element nodal coordinates
+        uint64_t n1, n2, n3, dof11, dof12, dof21, dof22, dof31, dof32; // Element DOFs
 
         // Create vector of DOFs
         std::vector<uint64_t> dofs(n_dofs);
         std::iota(std::begin(dofs), std::end(dofs), 0);
+
+        // Initialise vector of tuples containing row and column indices of NNZs
         std::vector<std::tuple<uint64_t, uint64_t>> v;
 
         // Determine sparsity pattern
@@ -212,6 +206,7 @@ public:
             e_dofs.push_back(dof31);
             e_dofs.push_back(dof32);
 
+            // Register all NNZ values. SOme will be duplicate
             for (uint64_t j = 0; j < e_dofs.size(); j++)
             {
                 for (uint64_t k = 0; k < e_dofs.size(); k++)
@@ -221,7 +216,7 @@ public:
             }
         }
 
-        // Sort vector with indices and remove duplicates
+        // Sort vector of tuples by row indices and remove duplicates
         sort(v.begin(), v.end());
         v.erase(unique(v.begin(), v.end()), v.end());
 
@@ -229,7 +224,7 @@ public:
         row_position.resize(n_dofs + 1, 0); // Indices in nnz values of stiffness matrix at start of each row
 
         // Construct row_position and col_index vectors
-        uint64_t count = 0;
+        uint64_t count = 0; // Counter for number of nnzs
         for (uint64_t i = 0; i < n_dofs; i++)
         {
             // Vector containing column indices for row i
@@ -255,7 +250,7 @@ public:
                     {
                         count++;
                     }
-
+                    // When all the NNZs in the row are registered, move on to the next row
                     break;
                 }
             }
@@ -298,7 +293,7 @@ public:
             e_dofs.push_back(dof31);
             e_dofs.push_back(dof32);
 
-            // Element stiffness matrix
+            // Call function for element stiffness matrix
             std::vector<double> ke = k_CST(nu, E, t, x1, x2, x3, y1, y2, y3);
             uint64_t r, r_next;
 
@@ -310,6 +305,7 @@ public:
                 {
                     for (uint64_t c = r; c < r_next; c++)
                     {
+                        // If the column index matches with the DOF, add contribution to global K
                         if (col_index[c] == e_dofs[k])
                         {
                             values[c] += ke[j * 6 + k];
@@ -321,44 +317,3 @@ public:
         }
     };
 };
-
-// Pointer to constructed CSR Global Stiffness Matrix
-// std::shared_ptr<CSRMatrix<double>> sparse_K(new CSRMatrix<double>(n_dofs, n_dofs, values.size(), true));
-
-// for (int i = 0; i < values.size(); i++)
-// {
-//     sparse_K->col_index[i] = col_index[i];
-//     sparse_K->values[i] = values[i];
-// }
-// for (int i = 0; i <= n_dofs; i++)
-// {
-//     sparse_K->row_position[i] = row_position[i];
-// }
-
-// return sparse_K;
-/*
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%% SOLVER MODULE %%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Specification of submatrices directly, note there is no need to form
-% a rearranged K or F explicitly
-KRR = K(dofs_restrained,dofs_restrained);
-KRF = K(dofs_restrained,dofs_free);
-KFR = K(dofs_free,dofs_restrained);
-KFF = K(dofs_free,dofs_free);
-fF = F(dofs_free);
-% You cannot yet form fR as you do not know what the base reaction is.
-% Also, you can even avoid formulating KRR etc. separately and just access
-% the requires sub-matrices of K and f directly in what follows.
-
-% Solution for the unknown nodal dofs
-uR = zeros(length(dofs_restrained),1); % BC - zero displacement on nodes 1,2,3,4,5,6,7,8,11,12
-uF = KFF\(fF - KFR*uR); % 1st matrix equation
-U = zeros(2*nodes,1);
-U(dofs_restrained) = uR;
-U(dofs_free) = uF; % full nodal dof vector
-
-% Solution for the unknown reactions
-fR = KRF*uF + KRR*uR; % 2nd matrix equation
-F(dofs_restrained) = fR; % full nodal force vector
-*/
