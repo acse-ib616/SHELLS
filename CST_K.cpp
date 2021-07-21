@@ -3,13 +3,6 @@
 #include <chrono>
 #include <vector>
 #include <memory>
-// #include "Matrix.h"
-// #include "Matrix.cpp"
-// #include "CSRMatrix.h"
-// #include "CSRMatrix.cpp"
-// #include "SparseSolver.h"
-// #include "SparseSolver.cpp"
-// #include "utilities.h"
 #include <memory>
 #include <tuple>
 #include <algorithm>
@@ -24,9 +17,9 @@ public:
     void operator()(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
         // checkArguments(outputs, inputs);
-        double E = inputs[0][0];  // Young's Modulus,
+        double E = inputs[0][0];  // Young's Modulus Pa
         double nu = inputs[1][0]; // Poisson coefficient
-        double t = inputs[2][0];  // Thickness of shell
+        double t = inputs[2][0];  // Thickness of shell mm
 
         // Change inputs into vectors, which are easier to manipulate in C++ and can link with sparse solvers
         // and matrix classes. Values are stored in ROW-MAJOR order in the vectors (A[i][j] = v[i*columns +j])
@@ -57,10 +50,8 @@ public:
             }
         }
 
-        // Build sparse matrix object for output to MATLAB. This is taken from an example in the MATHWROKS documentation
+        // Build sparse matrix object for output to MATLAB. This is taken from an example in the MATHWORKS documentation
         size_t nnz = values.size();
-
-        std::cout << "Size: " << values.size() << std::endl;
 
         matlab::data::ArrayFactory factory;
         auto values_p = factory.createBuffer<double>(nnz);
