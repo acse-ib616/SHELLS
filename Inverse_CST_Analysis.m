@@ -211,39 +211,14 @@ F(dofs_restrained) = fR; % full nodal force vector
 % spy(K);
 % title('K');
 
+% Get nodal force vector
 forces = K_sparse*U;
 
-% for EL = 1:elements % loop through all elements & build stiffness matrix
-%     n1 = ELEMENTS(EL,1); n2 = ELEMENTS(EL,2); % identify element node numbers
-%     n3 = ELEMENTS(EL,3);
-%     x1 = NODES.coords(n1,1); y1 = NODES.coords(n1,2); % element node 1 - x,y coordinates
-%     x2 = NODES.coords(n2,1); y2 = NODES.coords(n2,2); % element node 2 - x,y coordinates
-%     x3 = NODES.coords(n3,1); y3 = NODES.coords(n3,2); % element node 3 - x,y coordinates
-%     
-%     dof11 = NODES.dofs(n1,1); dof12 = NODES.dofs(n1,2); % element node 1 - dofs
-%     dof21 = NODES.dofs(n2,1); dof22 = NODES.dofs(n2,2); % element node 2 - dofs
-%     dof31 = NODES.dofs(n3,1); dof32 = NODES.dofs(n3,2); % element node 3 - dofs
-%     
-% 
-%     % Nodal force vector
-% %     F(4*Ny:2*Ny:2*N-2*Ny) = q*dx*1e-3; % The load P acts downwards on node 26 i.e. it affects global dof 2*26
-% %     F(2*Ny) = q*dx/2*1e-3; F(2*N) = q*dx/2*1e-3;
-% 
-%     x21 = x2 - x1; x31 = x3 - x1; % Triangle sides
-%     y21 = y2 - y1; y31 = y3 - y1;
-%     A = abs(x21*y31 - x31*y21)/2; % Area of element
-%     
-%     
-%     forces(dof12) = forces(dof12) - A*weight*t*1e-9/3; % Weight contribution
-%     forces(dof22) = forces(dof22) - A*weight*t*1e-9/3;
-%     forces(dof32) = forces(dof32) - A*weight*t*1e-9/3;
-% end
-mex F_CST_UDL.cpp
+% Fitness function
+f = @(q)CST_UDL_Fitness_Single(q,t,weight,Ly,coords,elem,dofs_free,forces);
+[UDL,fval] = fminbnd(f,-10e4,-1e3);
 
-fuerzas = F_CST_UDL(t,weight,coords,elem,forces);
-fuerzas(dofs_free) = (1/dx*1e3).*fuerzas(dofs_free);
-UDL = min(fuerzas(2:2:end))/1e3;
-disp(['Imposed UDL is = ',num2str(UDL),'kN/m']);
+disp(['Imposed UDL is = ',num2str(UDL/1e3),'kN/m']);
 
 % % Note that this portion is misleading in its minimalism. We exploit the
 % % fact that Matlab has efficient routines for matrix operations, and we can
