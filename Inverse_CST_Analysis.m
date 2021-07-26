@@ -6,16 +6,10 @@ clc;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%% PRE-PROCESSOR MODULE %%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Parameters
-E = 2e5; % N/m2 - modulus of elasticity of each bar element
-nu = 0.3; % Poisson coefficient
-t = 10; % Element thickness in mm
-q = -1e4; % kN/m2 - Imposed UDL 
-weight = -80e3; % kN/m3 - Unit weight of steel
 
 % Dimensions of domain and elements in each direction
-nx = 80;
-ny = 4;
+nx = 80*2;
+ny = 4*2;
 n_el = nx*2*ny;
 Lx = 2000;
 Ly = 100;
@@ -24,6 +18,16 @@ dy = Ly/ny; % Distance between nodes in y
 Nx = nx+1; % Nodes in x direction
 Ny = ny+1; % Nodes in y direction
 N = Nx*Ny; % Total number of nodes
+
+% Parameters
+E = 2e5; % N/m2 - modulus of elasticity of each bar element
+nu = 0.3; % Poisson coefficient
+t = 10; % Element thickness in mm
+loadw = -1e4; % kN/m2 - Imposed UDL
+q = zeros(n_el,1);
+q((ny-1)*2*nx+2:2:end) = loadw;
+q((ny-1)*2*nx+4:4:end) = -0.5;
+weight = -80e3; % kN/m3 - Unit weight of steel
 
 % Specifying nodal x-y coordinates
 NODES.coords = zeros(N,2);
@@ -146,9 +150,6 @@ for EL = 1:elements % loop through all elements & build stiffness matrix
     
     
     % Nodal force vector
-%     F(4*Ny:2*Ny:2*N-2*Ny) = q*dx*1e-3; % The load P acts downwards on node 26 i.e. it affects global dof 2*26
-%     F(2*Ny) = q*dx/2*1e-3; F(2*N) = q*dx/2*1e-3;
-
     x21 = x2 - x1; x31 = x3 - x1; % Triangle sides
     y21 = y2 - y1; y31 = y3 - y1;
     A = abs(x21*y31 - x31*y21)/2; % Area of element
@@ -157,10 +158,10 @@ for EL = 1:elements % loop through all elements & build stiffness matrix
     F(dof22) = F(dof22) + A*weight*t*1e-9/3;
     F(dof32) = F(dof32) + A*weight*t*1e-9/3;
     
-    if y1 == Ly  && y3 == Ly % UDL contribution
-        F(dof12) = F(dof12) + q*dx*1e-3/2;
-        F(dof32) = F(dof32) + q*dx*1e-3/2;
-    end
+%     if y1 == Ly  && y3 == Ly % UDL contribution
+    F(dof12) = F(dof12) + q(EL)*dx*1e-3/2;
+    F(dof32) = F(dof32) + q(EL)*dx*1e-3/2;
+%     end
 end
 disp('Hola ');
 t1 = toc;
@@ -214,11 +215,33 @@ F(dofs_restrained) = fR; % full nodal force vector
 % Get nodal force vector
 forces = K_sparse*U;
 
-% Fitness function
-f = @(q)CST_UDL_Fitness_Single(q,t,weight,Ly,coords,elem,dofs_free,forces);
-[UDL,fval] = fminbnd(f,-10e4,-1e3);
+% % Fitness function
+% f = @(q)CST_UDL_Fitness_Single(q,t,weight,Ly,coords,elem,dofs_free,forces);
+% [UDL,fval,flag,output] = fmincon(f,0,[],[]);
 
-disp(['Imposed UDL is = ',num2str(UDL/1e3),'kN/m']);
+% disp(['Imposed UDL is = ',num2str(UDL/1e3),'kN/m']);
+
+% Fitness function
+fun = @(q) CST_UDL_Fitness(q,t,weight,Ly,coords,elem,dofs_free,forces);
+
+x0 = zeros(n_el,1);
+
+% options = optimoptions('fmincon','Display','iter','Algorithm','sqp','MaxFunctionEvaluations',1e6,'MaxIterations',1e4);
+options = optimoptions('fmincon','Algorithm','sqp','MaxFunctionEvaluations',1e6,'MaxIterations',1e4);
+As = [];
+bs = [];
+Aeq = [];
+beq = [];
+lb = [];
+ub = [];
+nonlcon = [];
+
+tic;
+[vars,fval2] = fmincon(fun,x0,As,bs,Aeq,beq,lb,ub,nonlcon,options);
+t1 = toc;
+
+disp(['Imposed UDL is = ',num2str(vars((ny-1)*2*nx+2)/1e3),'N/m']);
+disp(['Optimisation time = ',num2str(t1)]);
 
 % % Note that this portion is misleading in its minimalism. We exploit the
 % % fact that Matlab has efficient routines for matrix operations, and we can
