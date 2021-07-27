@@ -88,6 +88,7 @@ public:
         uint64_t n_dofs = node_coords.size();                          // Number of DOFs
         double x1, x2, x3, y1, y2, y3, A, x21, x31, y21, y31;          // Element nodal coordinates, area & sides
         uint64_t n1, n2, n3, dof11, dof12, dof21, dof22, dof31, dof32; // Element DOFs
+        uint64_t counter = 0;
 
         // Create vector of DOFs
         std::vector<uint64_t> dofs(n_dofs);
@@ -138,8 +139,9 @@ public:
             // UDL contribution
             if (y1 == Ly && y3 == Ly)
             {
-                forces[dof12] = forces[dof12] + q[i] * abs(x31) * 1e-3 / 2;
-                forces[dof32] = forces[dof32] + q[i] * abs(x31) * 1e-3 / 2;
+                forces[dof12] = forces[dof12] + q[counter] * abs(x31) * 1e-3 / 2;
+                forces[dof32] = forces[dof32] + q[counter] * abs(x31) * 1e-3 / 2;
+                counter++;
             }
         }
     };

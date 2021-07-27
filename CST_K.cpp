@@ -16,7 +16,8 @@ class MexFunction : public matlab::mex::Function
 public:
     void operator()(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
-        // checkArguments(outputs, inputs);
+        checkArguments(outputs, inputs);
+
         double E = inputs[0][0];  // Young's Modulus Pa
         double nu = inputs[1][0]; // Poisson coefficient
         double t = inputs[2][0];  // Thickness of shell mm
@@ -70,44 +71,6 @@ public:
 
         // Assign MEX function output
         outputs[0] = factory.createSparseArray<double>({node_coords.size(), node_coords.size()}, nnz, std::move(values_p), std::move(rows_p), std::move(cols_p));
-    }
-
-    void checkArguments(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
-    {
-        std::shared_ptr<matlab::engine::MATLABEngine> matlabPtr = getEngine();
-        matlab::data::ArrayFactory factory;
-
-        if (inputs.size() != 2)
-        {
-            matlabPtr->feval(u"error",
-                             0, std::vector<matlab::data::Array>({factory.createScalar("Two inputs required")}));
-        }
-
-        if (inputs[0].getNumberOfElements() != 1)
-        {
-            matlabPtr->feval(u"error",
-                             0, std::vector<matlab::data::Array>({factory.createScalar("Input multiplier must be a scalar")}));
-        }
-
-        if (inputs[0].getType() != matlab::data::ArrayType::DOUBLE ||
-            inputs[0].getType() == matlab::data::ArrayType::COMPLEX_DOUBLE)
-        {
-            matlabPtr->feval(u"error",
-                             0, std::vector<matlab::data::Array>({factory.createScalar("Input multiplier must be a noncomplex scalar double")}));
-        }
-
-        if (inputs[3].getType() != matlab::data::ArrayType::DOUBLE ||
-            inputs[3].getType() == matlab::data::ArrayType::COMPLEX_DOUBLE)
-        {
-            matlabPtr->feval(u"error",
-                             0, std::vector<matlab::data::Array>({factory.createScalar("Input matrix must be type double")}));
-        }
-
-        if (inputs[3].getDimensions().size() != 2)
-        {
-            matlabPtr->feval(u"error",
-                             0, std::vector<matlab::data::Array>({factory.createScalar("Input must be m-by-n dimension")}));
-        }
     }
 
     // CST element stiffness matrix
@@ -306,5 +269,80 @@ public:
                 }
             }
         }
-    };
+    }
+
+    void checkArguments(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
+    {
+        std::shared_ptr<matlab::engine::MATLABEngine> matlabPtr = getEngine();
+        matlab::data::ArrayFactory factory;
+
+        if (inputs.size() != 5)
+        {
+            matlabPtr->feval(u"error",
+                             0, std::vector<matlab::data::Array>({factory.createScalar("5 inputs required")}));
+        }
+
+        if (inputs[0].getNumberOfElements() != 1)
+        {
+            matlabPtr->feval(u"error",
+                             0, std::vector<matlab::data::Array>({factory.createScalar("1st input must be a scalar")}));
+        }
+
+        if (inputs[0].getType() != matlab::data::ArrayType::DOUBLE ||
+            inputs[0].getType() == matlab::data::ArrayType::COMPLEX_DOUBLE)
+        {
+            matlabPtr->feval(u"error",
+                             0, std::vector<matlab::data::Array>({factory.createScalar("1st input must be a noncomplex scalar double")}));
+        }
+        if (inputs[1].getNumberOfElements() != 1)
+        {
+            matlabPtr->feval(u"error",
+                             0, std::vector<matlab::data::Array>({factory.createScalar("2nd input must be a scalar")}));
+        }
+
+        if (inputs[1].getType() != matlab::data::ArrayType::DOUBLE ||
+            inputs[1].getType() == matlab::data::ArrayType::COMPLEX_DOUBLE)
+        {
+            matlabPtr->feval(u"error",
+                             0, std::vector<matlab::data::Array>({factory.createScalar("2nd input must be a noncomplex scalar double")}));
+        }
+        if (inputs[2].getNumberOfElements() != 1)
+        {
+            matlabPtr->feval(u"error",
+                             0, std::vector<matlab::data::Array>({factory.createScalar("3rd input must be a scalar")}));
+        }
+
+        if (inputs[2].getType() != matlab::data::ArrayType::DOUBLE ||
+            inputs[2].getType() == matlab::data::ArrayType::COMPLEX_DOUBLE)
+        {
+            matlabPtr->feval(u"error",
+                             0, std::vector<matlab::data::Array>({factory.createScalar("3rd input must be a noncomplex scalar double")}));
+        }
+
+        if (inputs[3].getType() != matlab::data::ArrayType::DOUBLE ||
+            inputs[3].getType() == matlab::data::ArrayType::COMPLEX_DOUBLE)
+        {
+            matlabPtr->feval(u"error",
+                             0, std::vector<matlab::data::Array>({factory.createScalar("4th input matrix must be type double")}));
+        }
+
+        if (inputs[3].getDimensions()[0] != 1 && inputs[3].getDimensions()[1] != 1)
+        {
+            matlabPtr->feval(u"error",
+                             0, std::vector<matlab::data::Array>({factory.createScalar("4th input must be one-dimensional matrix")}));
+        }
+
+        if (inputs[4].getType() != matlab::data::ArrayType::UINT64 ||
+            inputs[4].getType() == matlab::data::ArrayType::COMPLEX_UINT64)
+        {
+            matlabPtr->feval(u"error",
+                             0, std::vector<matlab::data::Array>({factory.createScalar("5th input matrix must be type uint64")}));
+        }
+
+        if (inputs[4].getDimensions()[0] != 1 && inputs[4].getDimensions()[1] != 1)
+        {
+            matlabPtr->feval(u"error",
+                             0, std::vector<matlab::data::Array>({factory.createScalar("5th input must be one-dimensional matrix")}));
+        }
+    }
 };

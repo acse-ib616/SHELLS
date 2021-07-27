@@ -8,8 +8,8 @@ clc;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Dimensions of domain and elements in each direction
-nx = 80*2;
-ny = 4*2;
+nx = 80;
+ny = 4;
 n_el = nx*2*ny;
 Lx = 2000;
 Ly = 100;
@@ -24,9 +24,8 @@ E = 2e5; % N/m2 - modulus of elasticity of each bar element
 nu = 0.3; % Poisson coefficient
 t = 10; % Element thickness in mm
 loadw = -1e4; % kN/m2 - Imposed UDL
-q = zeros(n_el,1);
-q((ny-1)*2*nx+2:2:end) = loadw;
-q((ny-1)*2*nx+4:4:end) = -0.5;
+q = loadw.*ones(nx,1);
+q(2:2:end) = -0.5;
 weight = -80e3; % kN/m3 - Unit weight of steel
 
 % Specifying nodal x-y coordinates
@@ -63,7 +62,7 @@ elements = size(ELEMENTS,1); % no. of elements i.e.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Constructing the global stiffness matrix
 tic;
-
+counter = 1;
 F = zeros(2*nodes,1);
 K = zeros(2*nodes); % initialising en empty 12x12 matrix; 6 nodes at 2 dofs/node
 for EL = 1:elements % loop through all elements & build stiffness matrix
@@ -77,78 +76,6 @@ for EL = 1:elements % loop through all elements & build stiffness matrix
     dof21 = NODES.dofs(n2,1); dof22 = NODES.dofs(n2,2); % element node 2 - dofs
     dof31 = NODES.dofs(n3,1); dof32 = NODES.dofs(n3,2); % element node 3 - dofs
     
-    constants = E*t/(1-nu^2); % Plane stress condition
-    
-    [r,wr] = lgwt(2,0.0,1.0); % Gauss quadrature
-%     [r,wr] = md_gauss(2);
-    s = r; ws = wr;
-    
-    ke = zeros(6,6);
-    
-    for m=1:length(r)
-        for n=1:length(s)
-            kers = k_CST(x1,x2,x3,y1,y2,y3,nu,r(m),s(n));   
-            
-            ke = ke+kers.*wr(m).*ws(n);
-        end
-    end
-    
-    
-%     ke = triu(ke)+triu(ke,1)'; % mirror upper matrix to the lower half
-
-    ke = 0.5*constants*ke; % element stiffness. The 0.5 comes from integrating the area of a triangle (bh/2)
-    
-    % Updating global stiffness matrix [K] coefficients 
-    % Note that for each element you still have to 'think locally'
-    % Row 1 - element dof11
-    K(dof11,dof11) = K(dof11,dof11) + ke(1,1); % Col 1 - element dof11
-    K(dof11,dof12) = K(dof11,dof12) + ke(1,2); % Col 2 - element dof12
-    K(dof11,dof21) = K(dof11,dof21) + ke(1,3); % Col 3 - element dof21
-    K(dof11,dof22) = K(dof11,dof22) + ke(1,4); % Col 4 - element dof22
-    K(dof11,dof31) = K(dof11,dof31) + ke(1,5); % Col 5 - element dof31
-    K(dof11,dof32) = K(dof11,dof32) + ke(1,6); % Col 6 - element dof32
-    
-    % Row 2 - element dof12
-    K(dof12,dof11) = K(dof12,dof11) + ke(2,1); % Col 1 - element dof11
-    K(dof12,dof12) = K(dof12,dof12) + ke(2,2); % Col 2 - element dof12
-    K(dof12,dof21) = K(dof12,dof21) + ke(2,3); % Col 3 - element dof21
-    K(dof12,dof22) = K(dof12,dof22) + ke(2,4); % Col 4 - element dof22
-    K(dof12,dof31) = K(dof12,dof31) + ke(2,5); % Col 5 - element dof31
-    K(dof12,dof32) = K(dof12,dof32) + ke(2,6); % Col 6 - element dof32
-    
-    % Row 3 - element dof21
-    K(dof21,dof11) = K(dof21,dof11) + ke(3,1); % Col 1 - element dof11
-    K(dof21,dof12) = K(dof21,dof12) + ke(3,2); % Col 2 - element dof12
-    K(dof21,dof21) = K(dof21,dof21) + ke(3,3); % Col 3 - element dof21
-    K(dof21,dof22) = K(dof21,dof22) + ke(3,4); % Col 4 - element dof22
-    K(dof21,dof31) = K(dof21,dof31) + ke(3,5); % Col 5 - element dof31
-    K(dof21,dof32) = K(dof21,dof32) + ke(3,6); % Col 6 - element dof32
-    
-    % Row 4 - element dof22
-    K(dof22,dof11) = K(dof22,dof11) + ke(4,1); % Col 1 - element dof11
-    K(dof22,dof12) = K(dof22,dof12) + ke(4,2); % Col 2 - element dof12
-    K(dof22,dof21) = K(dof22,dof21) + ke(4,3); % Col 3 - element dof21
-    K(dof22,dof22) = K(dof22,dof22) + ke(4,4); % Col 4 - element dof22
-    K(dof22,dof31) = K(dof22,dof31) + ke(4,5); % Col 5 - element dof31
-    K(dof22,dof32) = K(dof22,dof32) + ke(4,6); % Col 6 - element dof32
-    
-    % Row 5 - element dof31
-    K(dof31,dof11) = K(dof31,dof11) + ke(5,1); % Col 1 - element dof11
-    K(dof31,dof12) = K(dof31,dof12) + ke(5,2); % Col 2 - element dof12
-    K(dof31,dof21) = K(dof31,dof21) + ke(5,3); % Col 3 - element dof21
-    K(dof31,dof22) = K(dof31,dof22) + ke(5,4); % Col 4 - element dof22
-    K(dof31,dof31) = K(dof31,dof31) + ke(5,5); % Col 5 - element dof31
-    K(dof31,dof32) = K(dof31,dof32) + ke(5,6); % Col 6 - element dof32
-    
-    % Row 6 - element dof32
-    K(dof32,dof11) = K(dof32,dof11) + ke(6,1); % Col 1 - element dof11
-    K(dof32,dof12) = K(dof32,dof12) + ke(6,2); % Col 2 - element dof12
-    K(dof32,dof21) = K(dof32,dof21) + ke(6,3); % Col 3 - element dof21
-    K(dof32,dof22) = K(dof32,dof22) + ke(6,4); % Col 4 - element dof22
-    K(dof32,dof31) = K(dof32,dof31) + ke(6,5); % Col 5 - element dof31
-    K(dof32,dof32) = K(dof32,dof32) + ke(6,6); % Col 6 - element dof32
-    
-    
     % Nodal force vector
     x21 = x2 - x1; x31 = x3 - x1; % Triangle sides
     y21 = y2 - y1; y31 = y3 - y1;
@@ -158,14 +85,13 @@ for EL = 1:elements % loop through all elements & build stiffness matrix
     F(dof22) = F(dof22) + A*weight*t*1e-9/3;
     F(dof32) = F(dof32) + A*weight*t*1e-9/3;
     
-%     if y1 == Ly  && y3 == Ly % UDL contribution
-    F(dof12) = F(dof12) + q(EL)*dx*1e-3/2;
-    F(dof32) = F(dof32) + q(EL)*dx*1e-3/2;
-%     end
+    if y1 == Ly  && y3 == Ly % UDL contribution
+        F(dof12) = F(dof12) + q(counter)*dx*1e-3/2;
+        F(dof32) = F(dof32) + q(counter)*dx*1e-3/2;
+        counter = counter + 1;
+    end
 end
 disp('Hola ');
-t1 = toc;
-disp(['Matlab exec time = ',num2str(t1)]);
 
 coords = reshape(NODES.coords',1,[]);
 elem = uint64(reshape(ELEMENTS',1,[]));
@@ -224,10 +150,10 @@ forces = K_sparse*U;
 % Fitness function
 fun = @(q) CST_UDL_Fitness(q,t,weight,Ly,coords,elem,dofs_free,forces);
 
-x0 = zeros(n_el,1);
+x0 = zeros(nx,1);
 
 % options = optimoptions('fmincon','Display','iter','Algorithm','sqp','MaxFunctionEvaluations',1e6,'MaxIterations',1e4);
-options = optimoptions('fmincon','Algorithm','sqp','MaxFunctionEvaluations',1e6,'MaxIterations',1e4);
+options = optimoptions('fmincon','Display','iter','Algorithm','sqp','MaxFunctionEvaluations',1e10,'MaxIterations',1e5);
 As = [];
 bs = [];
 Aeq = [];
@@ -237,10 +163,10 @@ ub = [];
 nonlcon = [];
 
 tic;
-[vars,fval2] = fmincon(fun,x0,As,bs,Aeq,beq,lb,ub,nonlcon,options);
+[vars,fval2,exitflag,~,~,grad,hessian] = fmincon(fun,x0,As,bs,Aeq,beq,lb,ub,nonlcon,options);
 t1 = toc;
 
-disp(['Imposed UDL is = ',num2str(vars((ny-1)*2*nx+2)/1e3),'N/m']);
+disp(['Imposed UDL is = ',num2str(vars(1)/1e3),'N/m']);
 disp(['Optimisation time = ',num2str(t1)]);
 
 % % Note that this portion is misleading in its minimalism. We exploit the
