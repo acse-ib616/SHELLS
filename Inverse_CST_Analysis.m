@@ -23,9 +23,10 @@ N = Nx*Ny; % Total number of nodes
 E = 2e5; % N/m2 - modulus of elasticity of each bar element
 nu = 0.3; % Poisson coefficient
 t = 10; % Element thickness in mm
-loadw = -1e4; % N/m2 - Imposed UDL
-q = loadw.*ones(nx,1);
-q(2:2:end) = -0.5;
+loadw = -1e5; % N/m2 - Imposed UDL
+% q = loadw.*ones(nx,1);
+q = loadw.*rand(nx,1);
+q(2:2:end) = -0.0;
 weight = -80e3; % N/m3 - Unit weight of steel
 
 % Specifying nodal x-y coordinates
@@ -64,7 +65,6 @@ elements = size(ELEMENTS,1); % no. of elements i.e.
 tic;
 counter = 1;
 F = zeros(2*nodes,1);
-K = zeros(2*nodes); % initialising en empty 12x12 matrix; 6 nodes at 2 dofs/node
 for EL = 1:elements % loop through all elements & build stiffness matrix
     n1 = ELEMENTS(EL,1); n2 = ELEMENTS(EL,2); % identify element node numbers
     n3 = ELEMENTS(EL,3);
@@ -130,25 +130,8 @@ U(dofs_free) = uF; % full nodal dof vector
 fR = KRF*uF + KRR*uR; % 2nd matrix equation
 F(dofs_restrained) = fR; % full nodal force vector
 
-% figure;
-% spy(K_sparse);
-% title('Sparse');
-% 
-% figure;
-% spy(K);
-% title('K');
-
 % Get nodal force vector
 forces = K_sparse*U;
-
-% % Fitness function
-% f = @(q)CST_UDL_Fitness_Single(q,t,weight,Ly,coords,elem,dofs_free,forces);
-% [UDL,fval,flag,output] = fmincon(f,0,[],[]);
-
-% disp(['Imposed UDL is = ',num2str(UDL/1e3),'kN/m']);
-
-% Fitness function
-% fun = @(q) CST_UDL_Fitness(q,t,weight,Ly,coords,elem,dofs_free,forces);
 
 x0 = zeros(nx,1);
 
