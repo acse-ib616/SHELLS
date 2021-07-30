@@ -8,8 +8,8 @@ clc;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Dimensions of domain and elements in each direction
-nx = 80;
-ny = 4;
+nx = 80*6;
+ny = 4*6;
 n_el = nx*2*ny;
 Lx = 2000;
 Ly = 100;
@@ -23,10 +23,10 @@ N = Nx*Ny; % Total number of nodes
 E = 2e5; % N/m2 - modulus of elasticity of each bar element
 nu = 0.3; % Poisson coefficient
 t = 10; % Element thickness in mm
-loadw = -1e4; % kN/m2 - Imposed UDL
+loadw = -1e4; % N/m2 - Imposed UDL
 q = loadw.*ones(nx,1);
 q(2:2:end) = -0.5;
-weight = -80e3; % kN/m3 - Unit weight of steel
+weight = -80e3; % N/m3 - Unit weight of steel
 
 % Specifying nodal x-y coordinates
 NODES.coords = zeros(N,2);
@@ -148,7 +148,7 @@ forces = K_sparse*U;
 % disp(['Imposed UDL is = ',num2str(UDL/1e3),'kN/m']);
 
 % Fitness function
-fun = @(q) CST_UDL_Fitness(q,t,weight,Ly,coords,elem,dofs_free,forces);
+% fun = @(q) CST_UDL_Fitness(q,t,weight,Ly,coords,elem,dofs_free,forces);
 
 x0 = zeros(nx,1);
 
@@ -163,7 +163,8 @@ ub = [];
 nonlcon = [];
 
 tic;
-[vars,fval2,exitflag,~,~,grad,hessian] = fmincon(fun,x0,As,bs,Aeq,beq,lb,ub,nonlcon,options);
+% [vars,fval2,exitflag,~,~,grad,hessian] = fmincon(fun,x0,As,bs,Aeq,beq,lb,ub,nonlcon,options);
+[vars,fval,rel_tol,it] = GN_CST(x0,t,weight,Ly,NODES.coords,ELEMENTS,NODES.dofs,dofs_free,forces,1e-4,1e6);
 t1 = toc;
 
 disp(['Imposed UDL is = ',num2str(vars(1)/1e3),'N/m']);
