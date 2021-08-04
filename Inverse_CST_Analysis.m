@@ -8,8 +8,8 @@ clc;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Dimensions of domain and elements in each direction
-nx = 80*6;
-ny = 4*6;
+nx = 80*12;
+ny = 4*12;
 n_el = nx*2*ny;
 Lx = 2000;
 Ly = 100;
@@ -25,8 +25,10 @@ nu = 0.3; % Poisson coefficient
 t = 10; % Element thickness in mm
 loadw = -1e5; % N/m2 - Imposed UDL
 % q = loadw.*ones(nx,1);
-q = loadw.*rand(nx,1);
-q(2:2:end) = -0.0;
+
+q_indices = randi([0 1],nx,1);
+q_values = loadw.*rand(nx,1);
+q = q_values.*q_indices;
 weight = -80e3; % N/m3 - Unit weight of steel
 
 % Specifying nodal x-y coordinates
@@ -131,107 +133,13 @@ fR = KRF*uF + KRR*uR; % 2nd matrix equation
 F(dofs_restrained) = fR; % full nodal force vector
 
 % Get nodal force vector
-forces = K_sparse*U;
+% forces = K_sparse*U;
 
 x0 = zeros(nx,1);
 
-% options = optimoptions('fmincon','Display','iter','Algorithm','sqp','MaxFunctionEvaluations',1e6,'MaxIterations',1e4);
-options = optimoptions('fmincon','Display','iter','Algorithm','sqp','MaxFunctionEvaluations',1e10,'MaxIterations',1e5);
-As = [];
-bs = [];
-Aeq = [];
-beq = [];
-lb = [];
-ub = [];
-nonlcon = [];
-
 tic;
-% [vars,fval2,exitflag,~,~,grad,hessian] = fmincon(fun,x0,As,bs,Aeq,beq,lb,ub,nonlcon,options);
-[vars,fval,rel_tol,it] = GN_CST(x0,t,weight,Ly,NODES.coords,ELEMENTS,NODES.dofs,dofs_free,forces,1e-4,1e6);
+[vars,fval,rel_tol,it] = GN_CST(x0,t,weight,Ly,coords,elem,NODES.dofs,dofs_free,F,1e-4,1e6,0);
 t1 = toc;
 
 disp(['Imposed UDL is = ',num2str(vars(1)/1e3),'N/m']);
 disp(['Optimisation time = ',num2str(t1)]);
-
-% % Note that this portion is misleading in its minimalism. We exploit the
-% % fact that Matlab has efficient routines for matrix operations, and we can
-% % manipulate matrices just like simple algebra. Additionally, the matrices
-% % are small and the analysis is linear, so the 'inversion' of KFF is very
-% % fast. Do not be fooled - for large nonlinear models this step can take
-% % the lion's share of modelling time. Hours, if not days. Just ask a PhD
-% % student!
-% 
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% %%%%%%%%%%%%%%%%%%%%% POST-PROCESSOR MODULE %%%%%%%%%%%%%%%%%%%%%
-% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% % Updating nodal coordinates after deformation
-% % Creating two vectors - one with real size deformed coordinates and one
-% % with amplified deformed coordinate (for plotting purposes)
-% NODES.new_coords = zeros(size(NODES.coords)); 
-% NODES.amp_coords = zeros(size(NODES.coords)); 
-% amp = 10; % amplification factor for plotting purposes only 
-% for I = 1:size(NODES.coords,1)
-%     for J = 1:size(NODES.coords,2)    
-%         NODES.amp_coords(I,J) = NODES.coords(I,J) + U(NODES.dofs(I,J))*amp;
-%         NODES.new_coords(I,J) = NODES.coords(I,J) + U(NODES.dofs(I,J));
-%     end
-% end
-% 
-% % Plotting
-% figure('units','normalized','outerposition',[0 0 1 1]); hold all; grid on; tol = 1e-3;
-% xmin = min(NODES.amp_coords(:,1)); xmax = max(NODES.amp_coords(:,1)); difx = xmax - xmin;
-% ymin = min(NODES.amp_coords(:,2)); ymax = max(NODES.amp_coords(:,2)); dify = ymax - ymin; fac = 0.25;
-% axis([xmin-difx*fac  xmax+difx*fac  ymin-dify*fac  ymax+dify*fac]);
-% % Note that if the 'squished' structural shape bothers you, replace the
-% % above line with 'axis equal'
-% axis equal;
-% 
-% for EL = 1:elements
-%     n1 = ELEMENTS(EL,1); n2 = ELEMENTS(EL,2); n3 = ELEMENTS(EL,3); % identify element node numbers
-%     
-% %     Plotting original structure
-%     x1 = NODES.coords(n1,1); y1 = NODES.coords(n1,2); % element node 1 - x,y original coordinates
-%     x2 = NODES.coords(n2,1); y2 = NODES.coords(n2,2); % element node 2 - x,y original coordinates
-%     x3 = NODES.coords(n3,1); y3 = NODES.coords(n3,2); % element node 3 - x,y original coordinates
-% 
-%     alpha = atan2(y2-y1,x2-x1); % angle of inclination relative to the POSITIVE x axis direction
-%     patch([x1,x2,x3],[y1,y2,y3],[0.5 0.5 0.5]); 
-%     
-% %     Check on changes in member lengths and plotting amplified deformed structure
-%     x1_amp = NODES.amp_coords(n1,1); y1_amp = NODES.amp_coords(n1,2); % element node 1 - x,y amplified deformed coordinates
-%     x2_amp = NODES.amp_coords(n2,1); y2_amp = NODES.amp_coords(n2,2); % element node 2 - x,y amplified deformed coordinates
-%     x3_amp = NODES.amp_coords(n3,1); y3_amp = NODES.amp_coords(n3,2); % element node 3 - x,y amplified deformed coordinates
-% 
-%     patch([x1_amp,x2_amp,x3_amp],[y1_amp,y2_amp,y3_amp],'r');
-%     
-%     
-% %     Plotting nodes last!
-% %     plot(x1,y1,'ko','Markersize',7,'MarkerFaceColor','w');  
-% %     plot(x2,y2,'ko','Markersize',7,'MarkerFaceColor','w');
-% %     plot(x3,y3,'ko','Markersize',7,'MarkerFaceColor','w');
-% %     plot(x1_amp,y1_amp,'ko','Markersize',7,'MarkerFaceColor','y');  
-% %     plot(x2_amp,y2_amp,'ko','Markersize',7,'MarkerFaceColor','y');
-% %     plot(x3_amp,y3_amp,'ko','Markersize',7,'MarkerFaceColor','y');
-% end
-% xlabel('x coordinate');
-% ylabel('y coordinate');
-% title('Deformed shape')
-% set(gca,'FontSize',30);
-% 
-% % Printing computed dofs & reactions - this is an important part of the post-processing,
-% % make sure to include something like this in every analysis that you do.
-% for dof = 1:length(uF)
-%     disp(['The value of dof ',num2str(dofs_free(dof)),' is ',num2str(uF(dof))]);    
-% end
-% disp(' ');
-% for react = 1:length(fR)
-%     disp(['The value of the reaction at dof ',num2str(dofs_restrained(react)),' is ',num2str(fR(react))]);
-% end
-% disp(' '); disp('Vertical equilibrium check:');
-% disp(['Total vertical reactions = ',num2str(fR(2))]);
-% disp(['Total applied vertical loads = ',num2str(sum(F(2*Ny:2*Ny:2*N)))]);
-% if abs(fR(2)+sum(F(2*Ny:2*Ny:2*N))) < 1e-6; disp('Ok.'); end
-% disp(' '); disp('Horizontal equilibrium check:');
-% disp(['Total horizontal reactions = ',num2str(fR(1)+fR(3))]);
-% disp('Total applied horizontal loads = 0');
-% if abs(fR(1)+fR(3)) < 1e-6; disp('Ok.'); end

@@ -2,15 +2,15 @@
 % force vector
 function [fitness] = CST_UDL_Fitness(q,t,weight,Ly,coords,elem,dofs,dofs_free,forces)
 
-elements = size(elem,1);
+elements = length(elem)/3;
 fuerzas = zeros(length(forces),1);
 count = 1;
 for EL = 1:elements % loop through all elements & build stiffness matrix
-    n1 = elem(EL,1); n2 = elem(EL,2); % identify element node numbers
-    n3 = elem(EL,3);
-    x1 = coords(n1,1); y1 = coords(n1,2); % element node 1 - x,y coordinates
-    x2 = coords(n2,1); y2 = coords(n2,2); % element node 2 - x,y coordinates
-    x3 = coords(n3,1); y3 = coords(n3,2); % element node 3 - x,y coordinates
+    n1 = elem((EL-1)*3+1); n2 = elem((EL-1)*3+2); % identify element node numbers
+    n3 = elem((EL-1)*3+3);
+    x1 = coords((n1-1)*2+1); y1 = coords((n1-1)*2+2); % element node 1 - x,y coordinates
+    x2 = coords((n2-1)*2+1); y2 = coords((n2-1)*2+2); % element node 2 - x,y coordinates
+    x3 = coords((n3-1)*2+1); y3 = coords((n3-1)*2+2); % element node 3 - x,y coordinates
     
     dof12 = dofs(n1,2); % element node 1 - dofs
     dof22 = dofs(n2,2); % element node 2 - dofs
