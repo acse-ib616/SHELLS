@@ -8,8 +8,8 @@ clc;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Dimensions of domain and elements in each direction
-nx = 80*12;
-ny = 4*12;
+nx = 20;
+ny = 1;
 n_el = nx*2*ny;
 Lx = 2000;
 Ly = 100;
@@ -23,13 +23,14 @@ N = Nx*Ny; % Total number of nodes
 E = 2e5; % N/m2 - modulus of elasticity of each bar element
 nu = 0.3; % Poisson coefficient
 t = 10; % Element thickness in mm
+weight = -80e3; % N/m3 - Unit weight of steel
 loadw = -1e5; % N/m2 - Imposed UDL
 % q = loadw.*ones(nx,1);
 
 q_indices = randi([0 1],nx,1);
 q_values = loadw.*rand(nx,1);
 q = q_values.*q_indices;
-weight = -80e3; % N/m3 - Unit weight of steel
+
 
 % Specifying nodal x-y coordinates
 NODES.coords = zeros(N,2);

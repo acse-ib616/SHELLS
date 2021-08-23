@@ -75,11 +75,11 @@ public:
     void Jacobian(double Ly, std::vector<double> q, std::vector<double> node_coords, std::vector<uint64_t> ELEMENTS, std::vector<uint64_t> &col_index, std::vector<uint64_t> &row_position, std::vector<double> &values)
     {
 
-        uint64_t els = ELEMENTS.size() / 3;      // Number of elements
+        uint64_t els = ELEMENTS.size() / 2;      // Number of elements
         uint64_t nodes = node_coords.size() / 2; // Number of nodes
         uint64_t n_dofs = node_coords.size();    // Number of DOFs
-        double x1, x3, y1, y3, x31;              // Element nodal coordinates and element side (nodes 1 to 3)
-        uint64_t n1, n3, dof12, dof32;           // Element DOFs
+        double x1, x2, y1, y2, x21;              // Element nodal coordinates and element side (nodes 1 to 3)
+        uint64_t n1, n2, dof12, dof22;           // Element DOFs
         uint64_t counter = 0;                    // Initialise UDL counter. Max. value will be length of q-1
 
         // Create vector of DOFs
@@ -93,23 +93,23 @@ public:
         for (uint64_t i = 0; i < els; i++)
         {
             // Identify element node numbers. SUBTRACT 1 DUE TO MATLAB INDEXING STARTING AT 1
-            n1 = ELEMENTS[i * 3] - 1;
-            n3 = ELEMENTS[i * 3 + 2] - 1;
+            n1 = ELEMENTS[i * 2] - 1;
+            n2 = ELEMENTS[i * 2 + 1] - 1;
 
             // element node 1 - y coordinate
             y1 = node_coords[n1 * 2 + 1];
-            // element node 3 - y coordinate
-            y3 = node_coords[n3 * 2 + 1];
+            // element node 2 - y coordinate
+            y2 = node_coords[n2 * 2 + 1];
 
             dof12 = dofs[n1 * 2 + 1]; // element node 1 - dofs
-            dof32 = dofs[n3 * 2 + 1];
+            dof22 = dofs[n2 * 2 + 1];
 
             // If element is at the top edge of planar body
-            if (y1 == Ly && y3 == Ly)
+            if (y1 == Ly && y2 == Ly)
             {
                 // Register all NNZ values. Some will be duplicate
                 v.push_back(std::make_tuple(dof12, counter));
-                v.push_back(std::make_tuple(dof32, counter));
+                v.push_back(std::make_tuple(dof22, counter));
                 counter++;
             }
         }
@@ -161,28 +161,28 @@ public:
         for (uint64_t i = 0; i < els; i++)
         {
             // Identify element node numbers
-            n1 = ELEMENTS[i * 3] - 1;
-            n3 = ELEMENTS[i * 3 + 2] - 1;
+            n1 = ELEMENTS[i * 2] - 1;
+            n2 = ELEMENTS[i * 2 + 1] - 1;
 
             // element node 1 - x,y coordinates
             x1 = node_coords[n1 * 2];
             y1 = node_coords[n1 * 2 + 1];
-            // element node 3 - y coordinate
-            x3 = node_coords[n3 * 2];
-            y3 = node_coords[n3 * 2 + 1];
+            // element node 2 - x,y coordinates
+            x2 = node_coords[n2 * 2];
+            y2 = node_coords[n2 * 2 + 1];
 
             // If element is at the top edge of planar body
-            if (y1 == Ly && y3 == Ly)
+            if (y1 == Ly && y2 == Ly)
             {
-                x31 = x3 - x1;
+                x21 = x2 - x1;
 
                 // element node 1 - dofs
                 dof12 = dofs[n1 * 2 + 1];
                 // element node 3 - dofs
-                dof32 = dofs[n3 * 2 + 1];
+                dof22 = dofs[n2 * 2 + 1];
                 std::vector<uint64_t> e_dofs{};
                 e_dofs.push_back(dof12);
-                e_dofs.push_back(dof32);
+                e_dofs.push_back(dof22);
 
                 for (uint64_t j = 0; j < 2; j++)
                 {
@@ -193,7 +193,7 @@ public:
                         // If the column index matches with the UDL counter, add contribution to Jacobian
                         if (col_index[c] == counter)
                         {
-                            values[c] += 0.5 * abs(x31) * 1e-3;
+                            values[c] += 0.5 * abs(x21) * 1e-3;
                             break;
                         }
                     }

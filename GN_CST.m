@@ -10,7 +10,6 @@ it = 0; % Iteration counter
 
 % Calculate Jacobian
 jacobi = CST_Jacobian(Ly,q,coords,elem);
-size(jacobi)
 jacob = jacobi(dofs_free,:);
 
 while rel_tol > tol && it < maxIt
