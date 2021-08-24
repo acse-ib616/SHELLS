@@ -46,7 +46,7 @@ public:
 
             for (uint32_t n = 0; n < row_nnzs; n++)
             {
-                rows.push_back(i + 1);
+                rows.push_back(i);
             }
         }
 
