@@ -8,8 +8,8 @@ clc;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Dimensions of domain and elements in each direction
-nx = 20;
-ny = 1;
+nx = 40;
+ny = 2;
 n_el = nx*2*ny;
 Lx = 2000;
 Ly = 100;
@@ -97,12 +97,16 @@ end
 disp('Hola ');
 
 coords = reshape(NODES.coords',1,[]);
-elem = uint64(reshape(ELEMENTS',1,[]));
+elem = uint32(reshape(ELEMENTS',1,[]));
 
 
 % mex CST_K.cpp
 tic;
-K_sparse = CST_K(E,nu,t,coords,elem);
+
+[k_values,k_rows,k_cols] = CST_K(E,nu,t,coords,elem);
+k_rows = double(k_rows) + ones(size(k_rows));
+k_cols = double(k_cols) + ones(size(k_cols));
+K_sparse = sparse(k_rows,k_cols,k_values,2*nodes,2*nodes);
 
 t1 = toc;
 

@@ -16,7 +16,7 @@ class MexFunction : public matlab::mex::Function
 public:
     void operator()(matlab::mex::ArgumentList outputs, matlab::mex::ArgumentList inputs)
     {
-        checkArguments(outputs, inputs);
+        // checkArguments(outputs, inputs);
 
         double E = inputs[0][0];  // Young's Modulus Pa
         double nu = inputs[1][0]; // Poisson coefficient
@@ -26,51 +26,36 @@ public:
         // and matrix classes. Values are stored in ROW-MAJOR order in the vectors (A[i][j] = v[i*columns +j])
         matlab::data::TypedArray<double> coords_Array = std::move(inputs[3]);
         std::vector<double> node_coords(coords_Array.begin(), coords_Array.end()); // Node coordinates
-        matlab::data::TypedArray<uint64_t> els_Array = std::move(inputs[4]);
-        std::vector<uint64_t> ELEMENTS(els_Array.begin(), els_Array.end()); // Nodal connectivity
+        matlab::data::TypedArray<uint32_t> els_Array = std::move(inputs[4]);
+        std::vector<uint32_t> ELEMENTS(els_Array.begin(), els_Array.end()); // Nodal connectivity
 
         // Initialise sparse K matrix vectors to be passed by reference to the function that assembles K
-        std::vector<uint64_t> col_index, row_position;
+        std::vector<uint32_t> col_index, row_position;
         std::vector<double> values;
-
         // Call function to assemble K
         CST_K(nu, E, t, node_coords, ELEMENTS, col_index, row_position, values);
-
         // Change row_position vector to include a row index for each NNZ value
-        uint64_t r, r_next, row_nnzs;
-        std::vector<uint64_t> rows;
-        for (uint64_t i = 0; i < row_position.size() - 1; i++)
+        uint32_t r, r_next, row_nnzs;
+        std::vector<uint32_t> rows;
+        for (uint32_t i = 0; i < row_position.size() - 1; i++)
         {
             r = row_position[i];
             r_next = row_position[i + 1];
             row_nnzs = r_next - r;
 
-            for (uint64_t n = 0; n < row_nnzs; n++)
+            for (uint32_t n = 0; n < row_nnzs; n++)
             {
                 rows.push_back(i);
             }
         }
 
-        // Build sparse matrix object for output to MATLAB. This is taken from an example in the MATHWORKS documentation
-        size_t nnz = values.size();
+        matlab::data::ArrayFactory f_values;
+        matlab::data::ArrayFactory f_rows;
+        matlab::data::ArrayFactory f_cols;
 
-        matlab::data::ArrayFactory factory;
-        auto values_p = factory.createBuffer<double>(nnz);
-        auto rows_p = factory.createBuffer<size_t>(nnz);
-        auto cols_p = factory.createBuffer<size_t>(nnz);
-
-        double *valuesPtr = values_p.get();
-        size_t *rowsPtr = rows_p.get();
-        size_t *colsPtr = cols_p.get();
-        std::for_each(values.begin(), values.end(), [&](const double &e)
-                      { *(valuesPtr++) = e; });
-        std::for_each(rows.begin(), rows.end(), [&](const size_t &e)
-                      { *(rowsPtr++) = e; });
-        std::for_each(col_index.begin(), col_index.end(), [&](const size_t &e)
-                      { *(colsPtr++) = e; });
-
-        // Assign MEX function output
-        outputs[0] = factory.createSparseArray<double>({node_coords.size(), node_coords.size()}, nnz, std::move(values_p), std::move(rows_p), std::move(cols_p));
+        outputs[0] = f_values.createArray<double>({1, values.size()}, values.data(), values.data() + values.size());
+        outputs[1] = f_rows.createArray<uint32_t>({1, rows.size()}, rows.data(), rows.data() + rows.size());
+        outputs[2] = f_cols.createArray<uint32_t>({1, col_index.size()}, col_index.data(), col_index.data() + col_index.size());
     }
 
     // CST element stiffness matrix
@@ -119,23 +104,22 @@ public:
     }
 
     // This function assembles the global stiffness matrix for CST elements
-    void CST_K(double nu, double E, double t, std::vector<double> node_coords, std::vector<uint64_t> ELEMENTS, std::vector<uint64_t> &col_index, std::vector<uint64_t> &row_position, std::vector<double> &values)
+    void CST_K(double nu, double E, double t, std::vector<double> node_coords, std::vector<uint32_t> ELEMENTS, std::vector<uint32_t> &col_index, std::vector<uint32_t> &row_position, std::vector<double> &values)
     {
-        uint64_t els = ELEMENTS.size() / 3;                            // Number of elements
-        uint64_t nodes = node_coords.size() / 2;                       // Number of nodes
-        uint64_t n_dofs = node_coords.size();                          // Number of DOFs
+        uint32_t els = ELEMENTS.size() / 3;                            // Number of elements
+        uint32_t nodes = node_coords.size() / 2;                       // Number of nodes
+        uint32_t n_dofs = node_coords.size();                          // Number of DOFs
         double x1, x2, x3, y1, y2, y3;                                 // Element nodal coordinates
-        uint64_t n1, n2, n3, dof11, dof12, dof21, dof22, dof31, dof32; // Element DOFs
+        uint32_t n1, n2, n3, dof11, dof12, dof21, dof22, dof31, dof32; // Element DOFs
 
         // Create vector of DOFs
-        std::vector<uint64_t> dofs(n_dofs);
+        std::vector<uint32_t> dofs(n_dofs);
         std::iota(std::begin(dofs), std::end(dofs), 0);
 
         // Initialise vector of tuples containing row and column indices of NNZs
-        std::vector<std::tuple<uint64_t, uint64_t>> v;
-
+        std::vector<std::tuple<uint32_t, uint32_t>> v;
         // Determine sparsity pattern
-        for (uint64_t i = 0; i < els; i++)
+        for (uint32_t i = 0; i < els; i++)
         {
             // Identify element node numbers. SUBTRACT 1 DUE TO MATLAB INDEXING STARTING AT 1
             n1 = ELEMENTS[i * 3] - 1;
@@ -152,7 +136,7 @@ public:
             dof31 = dofs[n3 * 2];
             dof32 = dofs[n3 * 2 + 1];
 
-            std::vector<uint64_t> e_dofs{};
+            std::vector<uint32_t> e_dofs{};
             e_dofs.push_back(dof11);
             e_dofs.push_back(dof12);
             e_dofs.push_back(dof21);
@@ -161,9 +145,9 @@ public:
             e_dofs.push_back(dof32);
 
             // Register all NNZ values. SOme will be duplicate
-            for (uint64_t j = 0; j < e_dofs.size(); j++)
+            for (uint32_t j = 0; j < e_dofs.size(); j++)
             {
-                for (uint64_t k = 0; k < e_dofs.size(); k++)
+                for (uint32_t k = 0; k < e_dofs.size(); k++)
                 {
                     v.push_back(std::make_tuple(e_dofs[j], e_dofs[k]));
                 }
@@ -176,13 +160,12 @@ public:
 
         values.resize(v.size(), 0);         // Non-zero values of stiffness matrix
         row_position.resize(n_dofs + 1, 0); // Indices in nnz values of stiffness matrix at start of each row
-
         // Construct row_position and col_index vectors
-        uint64_t count = 0; // Counter for number of nnzs
-        for (uint64_t i = 0; i < n_dofs; i++)
+        uint32_t count = 0; // Counter for number of nnzs
+        for (uint32_t i = 0; i < n_dofs; i++)
         {
             // Vector containing column indices for row i
-            std::vector<uint64_t> col_nnzs{};
+            std::vector<uint32_t> col_nnzs{};
             while (count <= v.size())
             {
                 if (std::get<0>(v[count]) == i)
@@ -195,14 +178,10 @@ public:
                 {
                     // Sort column indices
                     sort(col_nnzs.begin(), col_nnzs.end());
-                    for (uint64_t k = 0; k < col_nnzs.size(); k++)
+                    for (uint32_t k = 0; k < col_nnzs.size(); k++)
                     {
                         // Append column indices to full column index vector
                         col_index.push_back(col_nnzs[k]);
-                    }
-                    if (count == v.size())
-                    {
-                        count++;
                     }
                     // When all the NNZs in the row are registered, move on to the next row
                     break;
@@ -212,7 +191,7 @@ public:
         }
 
         // Calculate global stiffness matrix coefficients with known sparsity pattern
-        for (uint64_t i = 0; i < els; i++)
+        for (uint32_t i = 0; i < els; i++)
         {
             // Identify element node numbers
             n1 = ELEMENTS[i * 3] - 1;
@@ -239,7 +218,7 @@ public:
             dof31 = dofs[n3 * 2];
             dof32 = dofs[n3 * 2 + 1];
 
-            std::vector<uint64_t> e_dofs{};
+            std::vector<uint32_t> e_dofs{};
             e_dofs.push_back(dof11);
             e_dofs.push_back(dof12);
             e_dofs.push_back(dof21);
@@ -249,15 +228,15 @@ public:
 
             // Call function for element stiffness matrix
             std::vector<double> ke = k_CST(nu, E, t, x1, x2, x3, y1, y2, y3);
-            uint64_t r, r_next;
+            uint32_t r, r_next;
 
-            for (uint64_t j = 0; j < 6; j++)
+            for (uint32_t j = 0; j < 6; j++)
             {
                 r = row_position[e_dofs[j]];
                 r_next = row_position[e_dofs[j] + 1];
-                for (uint64_t k = 0; k < 6; k++)
+                for (uint32_t k = 0; k < 6; k++)
                 {
-                    for (uint64_t c = r; c < r_next; c++)
+                    for (uint32_t c = r; c < r_next; c++)
                     {
                         // If the column index matches with the DOF, add contribution to global K
                         if (col_index[c] == e_dofs[k])
@@ -332,8 +311,8 @@ public:
                              0, std::vector<matlab::data::Array>({factory.createScalar("4th input must be one-dimensional matrix")}));
         }
 
-        if (inputs[4].getType() != matlab::data::ArrayType::UINT64 ||
-            inputs[4].getType() == matlab::data::ArrayType::COMPLEX_UINT64)
+        if (inputs[4].getType() != matlab::data::ArrayType::UINT32 ||
+            inputs[4].getType() == matlab::data::ArrayType::COMPLEX_UINT32)
         {
             matlabPtr->feval(u"error",
                              0, std::vector<matlab::data::Array>({factory.createScalar("5th input matrix must be type uint64")}));

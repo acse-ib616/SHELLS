@@ -1,10 +1,14 @@
 function [x_sol,fval,rel_tol,it] = GN_Truss(q,Ly,weight,A,elem,coords,dofs,dofs_free,forces,tol,maxIt,lambda)
 
+nodes = length(coords)/2;
 x_old = q;
 rel_tol = 1;
 it = 0;
 % Calculate Jacobian
-jacobi = Truss_Jacobian(Ly,q,coords,elem);
+[j_values,j_rows,j_cols] = Truss_Jacobian(Ly,q,coords,elem);
+j_rows = double(j_rows) + ones(size(j_rows));
+j_cols = double(j_cols) + ones(size(j_cols));
+jacobi = sparse(j_rows,j_cols,j_values,2*nodes,length(q));
 jacob = jacobi(dofs_free,:);
 
 while rel_tol > tol && it < maxIt

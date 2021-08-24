@@ -62,12 +62,12 @@ public:
     void Jacobian(double Ly, std::vector<double> q, std::vector<double> node_coords, std::vector<uint32_t> ELEMENTS, std::vector<uint32_t> &col_index, std::vector<uint32_t> &row_position, std::vector<double> &values)
     {
 
-        uint32_t els = ELEMENTS.size() / 2;      // Number of elements
-        uint32_t nodes = node_coords.size() / 2; // Number of nodes
-        uint32_t n_dofs = node_coords.size();    // Number of DOFs
-        double x1, x2, y1, y2, x21;              // Element nodal coordinates and element side (nodes 1 to 3)
-        uint32_t n1, n2, dof12, dof22;           // Element DOFs
-        uint32_t counter = 0;                    // Initialise UDL counter. Max. value will be length of q-1
+        uint32_t els = ELEMENTS.size() / 6;       // Number of elements
+        uint32_t nodes = node_coords.size() / 2;  // Number of nodes
+        uint32_t n_dofs = node_coords.size();     // Number of DOFs
+        double x1, x2, y1, y2, x4, y4, x41;       // Element nodal coordinates and element side (nodes 1 to 3)
+        uint32_t n1, n2, n4, dof12, dof22, dof42; // Element DOFs
+        uint32_t counter = 0;                     // Initialise UDL counter. Max. value will be length of q-1
 
         // Create vector of DOFs
         std::vector<uint32_t> dofs(n_dofs);
@@ -80,23 +80,28 @@ public:
         for (uint32_t i = 0; i < els; i++)
         {
             // Identify element node numbers. SUBTRACT 1 DUE TO MATLAB INDEXING STARTING AT 1
-            n1 = ELEMENTS[i * 2] - 1;
-            n2 = ELEMENTS[i * 2 + 1] - 1;
+            n1 = ELEMENTS[i * 6] - 1;
+            n2 = ELEMENTS[i * 6 + 1] - 1;
+            n4 = ELEMENTS[i * 6 + 3] - 1;
 
             // element node 1 - y coordinate
             y1 = node_coords[n1 * 2 + 1];
             // element node 2 - y coordinate
             y2 = node_coords[n2 * 2 + 1];
+            // element node 4 - y coordinate
+            y4 = node_coords[n4 * 2 + 1];
 
             dof12 = dofs[n1 * 2 + 1]; // element node 1 - dofs
             dof22 = dofs[n2 * 2 + 1];
+            dof42 = dofs[n4 * 2 + 1];
 
             // If element is at the top edge of planar body
-            if (y1 == Ly && y2 == Ly)
+            if (y1 == Ly && y2 == Ly && y4 == Ly)
             {
                 // Register all NNZ values. Some will be duplicate
                 v.push_back(std::make_tuple(dof12, counter));
                 v.push_back(std::make_tuple(dof22, counter));
+                v.push_back(std::make_tuple(dof42, counter));
                 counter++;
             }
         }
@@ -145,30 +150,36 @@ public:
         for (uint32_t i = 0; i < els; i++)
         {
             // Identify element node numbers
-            n1 = ELEMENTS[i * 2] - 1;
-            n2 = ELEMENTS[i * 2 + 1] - 1;
+            n1 = ELEMENTS[i * 6] - 1;
+            n2 = ELEMENTS[i * 6 + 1] - 1;
+            n4 = ELEMENTS[i * 6 + 3] - 1;
 
             // element node 1 - x,y coordinates
             x1 = node_coords[n1 * 2];
             y1 = node_coords[n1 * 2 + 1];
-            // element node 2 - x,y coordinates
-            x2 = node_coords[n2 * 2];
+            // element node 2 - y coordinate
             y2 = node_coords[n2 * 2 + 1];
+            // element node 4 - x,y coordinates
+            x4 = node_coords[n4 * 2];
+            y4 = node_coords[n4 * 2 + 1];
 
             // If element is at the top edge of planar body
-            if (y1 == Ly && y2 == Ly)
+            if (y1 == Ly && y2 == Ly && y4 == Ly)
             {
-                x21 = x2 - x1;
+                x41 = x4 - x1;
 
                 // element node 1 - dofs
                 dof12 = dofs[n1 * 2 + 1];
-                // element node 3 - dofs
+                // element node 2 - dofs
                 dof22 = dofs[n2 * 2 + 1];
+                // element node 4 - dofs
+                dof42 = dofs[n4 * 2 + 1];
                 std::vector<uint32_t> e_dofs{};
                 e_dofs.push_back(dof12);
                 e_dofs.push_back(dof22);
+                e_dofs.push_back(dof42);
 
-                for (uint32_t j = 0; j < 2; j++)
+                for (uint32_t j = 0; j < e_dofs.size(); j++)
                 {
                     r = row_position[e_dofs[j]];
                     r_next = row_position[e_dofs[j] + 1];
@@ -177,8 +188,16 @@ public:
                         // If the column index matches with the UDL counter, add contribution to Jacobian
                         if (col_index[c] == counter)
                         {
-                            values[c] += 0.5 * abs(x21) * 1e-3;
-                            break;
+                            if (j == 2) // The midpoint along the edge recives double the contribution than the vertices
+                            {
+                                values[c] += abs(x41) * 1e-3;
+                                break;
+                            }
+                            else
+                            {
+                                values[c] += 0.5 * abs(x41) * 1e-3;
+                                break;
+                            }
                         }
                     }
                 }

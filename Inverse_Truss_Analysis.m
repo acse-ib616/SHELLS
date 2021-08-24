@@ -1,7 +1,5 @@
-% CIVE95006: Computational Methods II
-% Lecture 4 - 2D cantilever truss example
-% Last modified 11.18 on 10/02/21
-% Dr Adam Jan Sadowski
+% Iñigo Basterretxea Jacob
+% 01246662
 clear all;
 close all;
 clc;
@@ -99,8 +97,13 @@ for EL = 1:elements % loop through all elements & build stiffness matrix
 end
 
 coords = reshape(NODES.coords',1,[]);
-elem = uint64(reshape(ELEMENTS',1,[]));
-K = Truss_K(E,A,coords,elem);
+elem = uint32(reshape(ELEMENTS',1,[]));
+
+
+[k_values,k_rows,k_cols] = Truss_K(E,A,coords,elem);
+k_rows = double(k_rows) + ones(size(k_rows));
+k_cols = double(k_cols) + ones(size(k_cols));
+K = sparse(k_rows,k_cols,k_values,2*nodes,2*nodes);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%% SOLVER MODULE %%%%%%%%%%%%%%%%%%%%%
@@ -146,20 +149,6 @@ t1 = toc;
 disp(['Imposed Load is = ',num2str(vars(1)/1e3),'kN']);
 disp(['Optimisation time = ',num2str(t1)]);
 
-% fuerzas = zeros(length(forces),1);
-% count = 1;
-% for EL = 1:elements % loop through all elements & build stiffness matrix
-%     n1 = ELEMENTS(EL,1); n2 = ELEMENTS(EL,2); % identify element node numbers
-%     y1 = NODES.coords(n1,2); y2 = NODES.coords(n2,2);
-%     dof12 = NODES.dofs(n1,2); % element node 1 - dofs
-%     dof22 = NODES.dofs(n2,2); % element node 2 - dofs
-%     
-%     if y1 == Ly  && y2 == Ly % UDL contribution
-%         fuerzas(dof12) = fuerzas(dof12) + vars(count)/2;
-%         fuerzas(dof22) = fuerzas(dof22) + vars(count)/2;
-%         count = count + 1;
-%     end
-% end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%% POST-PROCESSOR MODULE %%%%%%%%%%%%%%%%%%%%%
