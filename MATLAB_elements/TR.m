@@ -299,8 +299,6 @@ for EL = 1:elements
     x1 = NODES.coords(n1,1); y1 = NODES.coords(n1,2); % element node 1 - x,y original coordinates
     x2 = NODES.coords(n2,1); y2 = NODES.coords(n2,2); % element node 2 - x,y original coordinates
     x3 = NODES.coords(n3,1); y3 = NODES.coords(n3,2); % element node 3 - x,y original coordinates
-
-    alpha = atan2(y2-y1,x2-x1); % angle of inclination relative to the POSITIVE x axis direction
     
     patch([x1,x2,x3],[y1,y2,y3],[0.5 0.5 0.5]);
     
@@ -312,14 +310,6 @@ for EL = 1:elements
     
     patch([x1_amp,x2_amp,x3_amp],[y1_amp,y2_amp,y3_amp],'r');
     
-    
-%     Plotting nodes last!
-%     plot(x1,y1,'ko','Markersize',7,'MarkerFaceColor','w');
-%     plot(x2,y2,'ko','Markersize',7,'MarkerFaceColor','w');
-%     plot(x3,y3,'ko','Markersize',7,'MarkerFaceColor','w');
-%     plot(x1_amp,y1_amp,'ko','Markersize',7,'MarkerFaceColor','y');
-%     plot(x2_amp,y2_amp,'ko','Markersize',7,'MarkerFaceColor','y');
-%     plot(x3_amp,y3_amp,'ko','Markersize',7,'MarkerFaceColor','y');
 end
 xlabel('x coordinate');
 ylabel('y coordinate');

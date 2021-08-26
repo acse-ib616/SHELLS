@@ -15,7 +15,7 @@ A = 100*pi; % mm2 - cross-sectional area of each bar element
 nu = 0.3; % Poisson ratio
 t = 10; % Element thickness in mm
 weight = -80e3; % N/m3 - Unit weight of steel
-loadw = -1e4; % N/m2 - Imposed UDL
+loadw = -1e4; % N/m - Imposed UDL
 
 % Dimensions of domain and elements in each direction
 nx = 40; % no. of divisions along x-direction
@@ -96,13 +96,15 @@ for EL = 1:elements % loop through all elements & build stiffness matrix
     % identify element DOFs
     dof11 = NODES.dofs(n1,1); dof12 = NODES.dofs(n1,2);
     dof21 = NODES.dofs(n2,1); dof22 = NODES.dofs(n2,2);
-    x21 = x2 - x1;
     
     %%%%%%%%%%%%%%%%%%
     %%% ASSEMBLE F %%%
     %%%%%%%%%%%%%%%%%%
     % Element length
-    Le = sqrt( (x2 - x1)^2 + (y2 - y1)^2 ); 
+    Le = sqrt( (x2 - x1)^2 + (y2 - y1)^2 );
+    
+    % Length projected in x
+    x21 = x2 - x1;
     
     % Weight contribution at all elements
     F(dof12) = F(dof12) + A*weight*Le*1e-9/3;
@@ -226,40 +228,7 @@ for EL = 1:elements
     end
     plot([x1_amp,x2_amp],[y1_amp,y2_amp],col,'Linewidth',3);
     
-%     % Calculate the axial force in the element, and display it within a text box
-%     Fax = ke*dup;
-%     x_lims = get(gca,'xlim'); xmin = x_lims(1); xmax = x_lims(2); 
-%     y_lims = get(gca,'ylim'); ymin = y_lims(1); ymax = y_lims(2);
-%     ax_pos = get(gca,'position'); ax_xpos = ax_pos(1); ax_ypos = ax_pos(2); ax_width = ax_pos(3); ax_height = ax_pos(4);
-%     txt_x_pos = (0.5*(x1_amp + x2_amp) - xmin)/(xmax - xmin) * ax_width + ax_xpos;
-%     txt_y_pos = (0.5*(y1_amp + y2_amp) - ymin)/(ymax - ymin) * ax_height + ax_ypos;
-%     txt_pos = [txt_x_pos txt_y_pos 0 0];
-%     annotation('textbox',txt_pos,'String',num2str(Fax),'FitBoxToText','on','color',col,'FontSize',20,'BackgroundColor','w');
-    
-    % Plotting nodes last!
-%     plot(x1,y1,'ko','Markersize',7,'MarkerFaceColor','w');  
-%     plot(x2,y2,'ko','Markersize',7,'MarkerFaceColor','w');
-%     plot(x1_amp,y1_amp,'ko','Markersize',7,'MarkerFaceColor','y');  
-%     plot(x2_amp,y2_amp,'ko','Markersize',7,'MarkerFaceColor','y');
 end
 xlabel('x coordinate');
 ylabel('y coordinate');
 set(gca,'FontSize',30);
-
-% Printing computed dofs & reactions - this is an important part of the post-processing,
-% make sure to include something like this in every analysis that you do.
-% for dof = 1:length(uF)
-%     disp(['The value of dof ',num2str(dofs_free(dof)),' is ',num2str(uF(dof))]);    
-% end
-% disp(' ');
-% for react = 1:length(fR)
-%     disp(['The value of the reaction at dof ',num2str(dofs_restrained(react)),' is ',num2str(fR(react))]);
-% end
-% disp(' '); disp('Vertical equilibrium check:');
-% disp(['Total vertical reactions = ',num2str(fR(2) + fR(4))]);
-% disp(['Total applied vertical loads = ',num2str(sum(Point_Loads))]);
-% if abs(fR(2) + fR(4) + sum(Point_Loads)) < 1e-6; disp('Ok.'); end
-% disp(' '); disp('Horizontal equilibrium check:');
-% disp(['Total horizontal reactions = ',num2str(fR(1) + fR(3))]);
-% disp('Total applied horizontal loads = 0');
-% if abs(fR(1) + fR(3)) < 1e-6; disp('Ok.'); end

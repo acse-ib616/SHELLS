@@ -15,7 +15,7 @@ E = 2e5; % N/mm2 - modulus of elasticity of each bar element
 nu = 0.3; % Poisson ratio
 t = 10; % Element thickness in mm
 weight = -80e3; % N/m3 - Unit weight of steel
-loadw = -1e4; % N/m2 - Imposed UDL
+loadw = -1e4; % N/m - Imposed UDL
 
 % Dimensions of domain and elements in each direction
 nx = 40; % no. of divisions along x-direction
@@ -207,39 +207,26 @@ end
 figure('units','normalized','outerposition',[0 0 1 1]); hold all; grid on; tol = 1e-3;
 xmin = min(NODES.amp_coords(:,1)); xmax = max(NODES.amp_coords(:,1)); difx = xmax - xmin;
 ymin = min(NODES.amp_coords(:,2)); ymax = max(NODES.amp_coords(:,2)); dify = ymax - ymin; fac = 0.25;
-% axis([xmin-difx*fac  xmax+difx*fac  ymin-dify*fac  ymax+dify*fac]);
-% Note that if the 'squished' structural shape bothers you, replace the
-% above line with 'axis equal'
 axis equal;
 
 for EL = 1:elements
     n1 = ELEMENTS(EL,1); n2 = ELEMENTS(EL,2); n3 = ELEMENTS(EL,3); % identify element node numbers
     
-%     Plotting original structure
+    % Plotting original structure
     x1 = NODES.coords(n1,1); y1 = NODES.coords(n1,2); % element node 1 - x,y original coordinates
     x2 = NODES.coords(n2,1); y2 = NODES.coords(n2,2); % element node 2 - x,y original coordinates
     x3 = NODES.coords(n3,1); y3 = NODES.coords(n3,2); % element node 3 - x,y original coordinates
 
-    alpha = atan2(y2-y1,x2-x1); % angle of inclination relative to the POSITIVE x axis direction
-    
     patch([x1,x2,x3],[y1,y2,y3],[0.5 0.5 0.5]);
     
     
-%     Check on changes in member lengths and plotting amplified deformed structure
+    % Check on changes in member lengths and plotting amplified deformed structure
     x1_amp = NODES.amp_coords(n1,1); y1_amp = NODES.amp_coords(n1,2); % element node 1 - x,y amplified deformed coordinates
     x2_amp = NODES.amp_coords(n2,1); y2_amp = NODES.amp_coords(n2,2); % element node 2 - x,y amplified deformed coordinates
     x3_amp = NODES.amp_coords(n3,1); y3_amp = NODES.amp_coords(n3,2); % element node 3 - x,y amplified deformed coordinates
     
     patch([x1_amp,x2_amp,x3_amp],[y1_amp,y2_amp,y3_amp],'r');
-    
-    
-%     Plotting nodes last!
-%     plot(x1,y1,'ko','Markersize',7,'MarkerFaceColor','w');
-%     plot(x2,y2,'ko','Markersize',7,'MarkerFaceColor','w');
-%     plot(x3,y3,'ko','Markersize',7,'MarkerFaceColor','w');
-%     plot(x1_amp,y1_amp,'ko','Markersize',7,'MarkerFaceColor','y');
-%     plot(x2_amp,y2_amp,'ko','Markersize',7,'MarkerFaceColor','y');
-%     plot(x3_amp,y3_amp,'ko','Markersize',7,'MarkerFaceColor','y');
+
 end
 xlabel('x coordinate');
 ylabel('y coordinate');

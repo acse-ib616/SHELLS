@@ -67,9 +67,12 @@ for i=1:elements
 end
 
 % Degrees of freedom & other parameters
-dofs_free = [1:nodes-Nx,nodes-Nx+3:nodes+Nx-1,nodes+Nx+1:2*nodes]; % unknown nodal x-y dofs
-dofs_restrained = [nodes-Nx+1,nodes-Nx+2,nodes+Nx]; % known nodal x-y dofs due to BC
-
+% unknown nodal x-y dofs
+dofs_free = [1:nodes-Nx,nodes-Nx+3:2*nodes-2*Nx,2*nodes-2*Nx+2:2*nodes];
+% known nodal x-y dofs due to BC
+dofs_restrained = [nodes-Nx+1,nodes-Nx+2,2*nodes-2*Nx+1]; 
+% dofs_free = [1:nodes-Nx,nodes-Nx+3:nodes+Nx-1,nodes+Nx+1:2*nodes]; % unknown nodal x-y dofs
+% dofs_restrained = [nodes-Nx+1,nodes-Nx+2,nodes+Nx]; % known nodal x-y dofs due to BC
 
 count = 1; % Initialise q-vector counter
 q = loadw.*ones(nx,1); % Vector of upper boundary UDLs
@@ -132,9 +135,7 @@ for EL = 1:elements % loop through all elements & build stiffness matrix
     %%%%%%%%%%%%%%%%%%
     
     % Element stiffness matrix
-    constants = E*t/(1-nu.^2);
-    ke = k_mat_LST(x1,x2,x3,y1,y2,y3,nu);
-    ke = constants*ke;
+    ke = k_mat_LST(x1,x2,x3,y1,y2,y3,nu,E,t);
         
     % Updating global stiffness matrix [K] coefficients
     % Row 1 - element dof11
@@ -304,12 +305,6 @@ for EL = 1:elements % loop through all elements & build stiffness matrix
     K(dof62,dof52) = K(dof62,dof52) + ke(12,10); % Col 10 - element dof52
     K(dof62,dof61) = K(dof62,dof61) + ke(12,11); % Col 11 - element dof61
     K(dof62,dof62) = K(dof62,dof62) + ke(12,12); % Col 12 - element dof62
-    
-    dof12 = NODES.dofs(n1,2); % element node 1 - dofs
-    dof22 = NODES.dofs(n2,2); % element node 2 - dofs
-    dof42 = NODES.dofs(n4,2); % element node 3 - dofs
-    dof52 = NODES.dofs(n5,2); % element node 3 - dofs
-    dof62 = NODES.dofs(n6,2); % element node 3 - dofs
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -354,9 +349,6 @@ end
 figure('units','normalized','outerposition',[0 0 1 1]); hold all; grid on; tol = 1e-3;
 xmin = min(NODES.amp_coords(:,1)); xmax = max(NODES.amp_coords(:,1)); difx = xmax - xmin;
 ymin = min(NODES.amp_coords(:,2)); ymax = max(NODES.amp_coords(:,2)); dify = ymax - ymin; fac = 0.25;
-% axis([xmin-difx*fac  xmax+difx*fac  ymin-dify*fac  ymax+dify*fac]);
-% Note that if the 'squished' structural shape bothers you, replace the
-% above line with 'axis equal'
 axis equal;
 
 for EL = 1:elements
@@ -367,7 +359,6 @@ for EL = 1:elements
     x2 = NODES.coords(n2,1); y2 = NODES.coords(n2,2); % element node 2 - x,y original coordinates
     x3 = NODES.coords(n3,1); y3 = NODES.coords(n3,2); % element node 3 - x,y original coordinates
 
-    alpha = atan2(y2-y1,x2-x1); % angle of inclination relative to the POSITIVE x axis direction
     
     patch([x1,x2,x3],[y1,y2,y3],[0.5 0.5 0.5]);
     
@@ -380,13 +371,6 @@ for EL = 1:elements
     patch([x1_amp,x2_amp,x3_amp],[y1_amp,y2_amp,y3_amp],'r');
     
     
-%     Plotting nodes last!
-%     plot(x1,y1,'ko','Markersize',7,'MarkerFaceColor','w');
-%     plot(x2,y2,'ko','Markersize',7,'MarkerFaceColor','w');
-%     plot(x3,y3,'ko','Markersize',7,'MarkerFaceColor','w');
-%     plot(x1_amp,y1_amp,'ko','Markersize',7,'MarkerFaceColor','y');
-%     plot(x2_amp,y2_amp,'ko','Markersize',7,'MarkerFaceColor','y');
-%     plot(x3_amp,y3_amp,'ko','Markersize',7,'MarkerFaceColor','y');
 end
 xlabel('x coordinate');
 ylabel('y coordinate');
