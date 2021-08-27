@@ -1,4 +1,4 @@
-# Foobar
+# 2D Finite Element Solver with Load Reconstruction
 
 Foobar is a Python library for dealing with word pluralization.
 
