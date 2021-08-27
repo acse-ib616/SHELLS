@@ -12,6 +12,7 @@ pip install foobar
 
 ## Usage
 Edit the `input.txt` file to vary the parametres of the model and to perform different operations:
+```
 Ly
 nx
 ny
