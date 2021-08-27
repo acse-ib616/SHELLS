@@ -10,7 +10,7 @@
 % - U: vector of nodal displacements
 % - amp: deformation amplification factor
 % - element_type: CST, LST or truss element type
-% - solve_U: is U available
+% - solve_U: is U available?
 
 % Outputs:
 % - p: MATLAB figure object
