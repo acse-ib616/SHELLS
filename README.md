@@ -11,18 +11,26 @@ pip install foobar
 ```
 
 ## Usage
-
-```python
-import foobar
-
-# returns 'words'
-foobar.pluralize('word')
-
-# returns 'geese'
-foobar.pluralize('goose')
-
-# returns 'phenomenon'
-foobar.singularize('phenomena')
+Edit the `input.txt` file to vary the parametres of the model and to perform different operations:
+Ly
+nx
+ny
+E
+t/r
+nu
+q
+weight
+uniform or random
+cantilever or ss
+CST/LST/Truss
+stiffness
+U
+optimisation
+tol
+max it
+lambda
+plot
+amp
 ```
 
 ## Contributing
