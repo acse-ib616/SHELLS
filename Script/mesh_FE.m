@@ -52,13 +52,13 @@ if element_type == 1 % CST
         end
     end
     
-    if BC == 1
+    if BC == 1 % Simply-supported
         % unknown nodal x-y dofs
         dofs_free = [1:(floor(ny/2)+1)*2-2,(floor(ny/2)+1)*2+1:2*Ny-2,2*Ny:2*N];
         % known nodal x-y dofs due to BC
         dofs_restrained = [(floor(ny/2)+1)*2-1,(floor(ny/2)+1)*2,2*Ny-1];
         
-    else
+    else % Cantilever by default
         dofs_free = [1:(floor(ny/2)+1)*2-2,(floor(ny/2)+1)*2+1:2*N-Ny,2*N-Ny+2:2*N];
         dofs_restrained = [(floor(ny/2)+1)*2-1,(floor(ny/2)+1)*2,2*N-Ny+1];
     end
@@ -105,14 +105,14 @@ elseif element_type == 2 % LST
         end
     end
     
-    if BC == 1
+    if BC == 1 % Simply-supported
         % Degrees of freedom
         % unknown nodal x-y dofs
         dofs_free = [1:N-Nx,N-Nx+3:2*N-2*Nx,2*N-2*Nx+2:2*N];
         % known nodal x-y dofs due to BC
         dofs_restrained = [N-Nx+1,N-Nx+2,2*N-2*Nx+1];
         
-    else
+    else % Cantilever by default
         dofs_free = [1:N-Nx,N-Nx+3:N+Nx-1,N+Nx+1:2*N];
         dofs_restrained = [N-Nx+1,N-Nx+2,N+Nx];
     end
@@ -163,13 +163,14 @@ else % Truss by default
             ELEMENTS((3*nx+1)*ny+k,:) = [ny+1, ny+ny+2] + [(k-1)*(ny+1), (k-1)*(ny+1)];
     end
     
-    if BC == 1
+    if BC == 1 % Simply-supported
         % Degrees of freedom & other parameters
         % unknown nodal x-y dofs
         dofs_free = [1:(floor(ny/2)+1)*2-2,(floor(ny/2)+1)*2+1:2*Ny-2,2*Ny:2*N]; 
         % known nodal x-y dofs due to BC
         dofs_restrained = [(floor(ny/2)+1)*2-1,(floor(ny/2)+1)*2,2*Ny-1];
-    else
+        
+    else % Cantilever by default
         dofs_free = [1:(floor(ny/2)+1)*2-2,(floor(ny/2)+1)*2+1:2*N-Ny,2*N-Ny+2:2*N];
         dofs_restrained = [(floor(ny/2)+1)*2-1,(floor(ny/2)+1)*2,2*N-Ny+1];
     end
