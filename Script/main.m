@@ -1,7 +1,13 @@
 % Iñigo Basterretxea Jacob
 % 01246662
-% This file reads the user input parametres from a text file and does
-% various things depending on the optins chosen:
+% This file reads the user input parametres from input.txt and does
+% several things depending on the optinos chosen:
+% - assemble mesh for CST, lST or truss element
+% - build global stiffness matrix K
+% - build nodal forces vector F
+% - solve for the nodal displacements U
+% - perform load reconstruction
+% - plot original mesh with(out) the deformed mesh
 
 clear all;
 close all;
@@ -15,22 +21,28 @@ fileID = fopen('input.txt','r');
 formatSpec = '%f';
 params = fscanf(fileID,formatSpec);
 
-% In case input is incomplete
+% In case input is incomplete or negative
 if length(params) == 20
+    for i = 1:length(params)
+        if params(i) < 0
+            msg = 'ABORTED: all inputs must be positive';
+            error(msg);
+        end
+    end
     % Dimensions of domain and elements in each direction
     Lx = params(1); % Height of domain in mm
     Ly = params(2); % Width of domain in mm
-    nx = params(3); % no. of divisions along x-direction
-    ny = params(4); % no. of divisions along y-direction
+    nx = round(params(3)); % no. of divisions along x-direction. Must be an integer
+    ny = round(params(4)); % no. of divisions along y-direction. Must be an integer
     
     % Parameters
     E = params(5); % N/mm2 - modulus of elasticity of each bar element
     nu = params(7); % Poisson ratio
-    loadw = params(8); % N/m - Imposed UDL
-    weight = params(9); % N/m3 - Unit weight of material
-    load_type = params(10); % Uniform or random set of UDLs
-    BC = params(11); % Boundary conditions (1 cantilever or 0 simply-supported)
-    element_type = params(12); % 0 truss, 1 CST, 2LST
+    loadw = -params(8); % N/m - Imposed UDL
+    weight = -params(9); % N/m3 - Unit weight of material
+    load_type = params(10); % 1 random set of UDLs, otherwise uniform
+    BC = params(11); % Boundary conditions (1 cantilever, otherwise simply-supported)
+    element_type = round(params(12)); % 1 CST, 2 LST, otherwise truss
     stiffness = params(13); % 1 for assembling the stiffness matrix K
     solve_U = params(14); % 1 for solving for the nodal displacements U
     reconstruct_F = params(15); % 1 for load reconstruction
@@ -39,6 +51,21 @@ if length(params) == 20
     lambda = params(18); % Levenberg–Marquardt Modification coefficient
     plot_U = params(19); % 1 for plotting the elements with(out) nodal displacements
     amp = params(end); % amplification factor for plotting purposes only
+    
+    % Use radius or element thickness depending on element type
+    if element_type == 1 || element_type == 2
+        t = params(6); % Element thickness in mm
+    else
+        t = params(6)^2*pi; % mm2 - cross-sectional area of each bar element
+    end
+    
+    if load_type == 1
+        q_indices = randi([0 1],nx,1);
+        q_values = loadw.*rand(nx,1);
+        q = q_values.*q_indices; % Random vector of upper boundary UDLs
+    else
+        q = loadw.*ones(nx,1); % Uniform vector of upper boundary UDLs
+    end
     
     if BC == 0 && mod(ny,2) ~= 0 && element_type ~= 2
         msg = 'ABORTED: pure simply-supported conditions (at Neutral Axis) are incompatible with an odd no. of y-divisions (ny) for truss and CST elements';
@@ -53,9 +80,10 @@ else
         if default
             Lx = 2000;
             Ly = 100;
-            nx = 40;
-            ny = 2;
+            nx = 80;
+            ny = 4;
             E = 2e5;
+            t = 10;
             nu = 0.3;
             loadw = -1e4;
             weight = -80e3;
@@ -70,6 +98,7 @@ else
             lambda = 0;
             plot_U = 1;
             amp = 1;
+            q = loadw.*ones(nx,1);
             check = 0;
         else
             msg = 'ABORTED due to lack of input.';
@@ -78,19 +107,7 @@ else
     end
 end
 
-if element_type == 1 || element_type == 2
-    t = params(6); % Element thickness in mm
-else
-    t = params(6)^2*pi; % mm2 - cross-sectional area of each bar element
-end
 
-if load_type == 1
-    q_indices = randi([0 1],nx,1);
-    q_values = loadw.*rand(nx,1);
-    q = q_values.*q_indices; % Random vector of upper boundary UDLs
-else
-    q = loadw.*ones(nx,1); % Uniform vector of upper boundary UDLs
-end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -104,7 +121,7 @@ end
 %%%%%%%%%%%%%%%%% ASSEMBLE K %%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 if stiffness
-    K = K_FE(ELEMENTS,NODES.coords,E,t,nu,element_type);
+    [K] = K_FE(ELEMENTS,NODES.coords,E,t,nu,element_type);
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -137,9 +154,9 @@ if reconstruct_F
     error(isinf(error)) = 0;
     max_error = max(error);
     if max_error < 1e-6
-        disp(['CORRECT: maximum relative error is = ',num2str(max_error),'%']);
+        disp(['CORRECT OPTIMISATION: maximum relative error is = ',num2str(max_error),'%']);
     else
-        disp(['ERROR: maximum relative error is larger than = ',num2str(1e-6),'%']);
+        disp(['ERROR IN OPTIMISATION: maximum relative error is larger than = ',num2str(1e-6),'%']);
     end
 end
 

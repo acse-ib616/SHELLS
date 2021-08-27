@@ -59,7 +59,7 @@ public:
         outputs[2] = f_cols.createArray<uint32_t>({1, col_index.size()}, col_index.data(), col_index.data() + col_index.size());
     }
 
-    // CST element stiffness matrix
+    // Truss element stiffness matrix
     std::vector<double> k_Truss(double E, double A, double x1, double x2, double y1, double y2)
     {
         std::vector<double> k(16, 0);

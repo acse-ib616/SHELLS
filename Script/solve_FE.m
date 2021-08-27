@@ -1,4 +1,17 @@
 % Iñigo Basterretxea Jacob 01246662
+
+% This function solves the 2 matrix equations to obtain the nodal
+% displacements and the nodal forces vectors U & F
+
+% Inputs:
+% - K: sparse global stiffness matrix
+% - dofs_restrained: vector of restricted DOFs of system
+% - dofs_free: vector of unrestricted DOFs of system
+% - forces: external nodal forces vector
+
+% Output:
+% - U: struct with matrices of x,y nodal coordinates (NODES.coords) & DOFs (NODES.dofs)
+% - F: nodal forces vector including reactions
 function [U,F] = solve_FE(K,forces,dofs_free,dofs_restrained)
 F = forces;
 N = length(forces)/2; % no. of nodes
@@ -21,4 +34,10 @@ U(dofs_free) = uF; % full nodal dof vector
 % Solution for the unknown reactions
 fR = KRF*uF + KRR*uR; % 2nd matrix equation
 F(dofs_restrained) = fR; % full nodal force vector
+
+% Test force balance
+if abs(sum(F)/max(abs(F)))*100 > 1e-4
+    msg = 'ABORTED: there is not force balance';
+    error(msg);
+end
 end

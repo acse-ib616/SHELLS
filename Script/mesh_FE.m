@@ -1,4 +1,21 @@
 % Iñigo Basterretxea Jacob 01246662
+
+% This function assembles the finite element mesh for the truss, CST and
+% LST elements
+
+% Inputs:
+% - Lx: width of domain
+% - Ly: height of domain
+% - nx: no. of divisions along x-direction
+% - ny: no. of divisions along y-direction
+% - element_type: CST, LST or truss element type
+% - BC: boundary conditions
+
+% Output:
+% - NODES: struct with matrices of x,y nodal coordinates (NODES.coords) & DOFs (NODES.dofs)
+% - ELEMENTS: matrix with element nodal connectivity
+% - dofs_restrained: vector of restricted DOFs of system
+% - dofs_free: vector of unrestricted DOFs of system
 function [NODES,ELEMENTS,dofs_free,dofs_restrained] = mesh_FE(Lx,Ly,nx,ny,element_type,BC)
 
 if element_type == 1 % CST

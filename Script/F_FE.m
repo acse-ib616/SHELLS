@@ -1,4 +1,23 @@
 % Iñigo Basterretxea Jacob 01246662
+
+% This function performs the Gauss-Newton method to optimise for a vector
+% of top boundary UDLs a rectangular system of finite elements
+
+% Inputs:
+% - x0: initial estimate for vector of top boundary UDLs
+% - options: Gauss-Newton optimisation parametres (eg. tol,maxIt,lambda)
+% - COORDS: vector of x,y nodal coordinates
+% - ELEMENTS: vector of element nodal connectivity
+% - DOFS: vector of DOFs of system
+% - dofs_free: vector of unrestricted DOFs of system
+% - forces: input nodal forces vector F
+% - constants: element constants (eg. E,t,weight)
+% - element_type: CST, LST or truss element type
+
+% Outputs:
+% - xsol: vector of solutions for q
+% - fval: L2-norm of input F vs assembled F
+% - it: no. of iterations performed
 function [F] = F_FE(ELEMENTS,COORDS,DOFS,Ly,t,q,weight,element_type)
 
 N = size(COORDS,1); % no. of nodes
