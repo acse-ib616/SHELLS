@@ -6,6 +6,8 @@ The directory `MATLAB_elements` contains 4 scripts for the truss, CST, LST and T
 
 The directory `Script` contains the main script together with MATLAB functions and the `.cpp` files for the K and Jacobian sparse assemblers.
 
+The file `mesh_convergence.m` contains results data and code for generating the figures in the report.
+
 ## Installation
 
 Compile the `.cpp` files with the command:
