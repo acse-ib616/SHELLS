@@ -1,5 +1,19 @@
 % Iñigo Basterretxea Jacob 01246662
-% This function is largely based on code written by Dr. Adam Sadowski
+
+% This function outputs a plot of the original mesh and of the deformed
+% mesh if the nodal displacements vector U has been obtained
+
+% Inputs:
+% - ELEMENTS: vector of element nodal connectivity
+% - COORDS: vector of x,y nodal coordinates
+% - DOFS: vector of DOFs of system
+% - U: vector of nodal displacements
+% - amp: deformation amplification factor
+% - element_type: CST, LST or truss element type
+% - solve_U: is U available
+
+% Outputs:
+% - p: MATLAB figure object
 function p = plot_FE(ELEMENTS,COORDS,DOFS,U,amp,element_type,solve_U)
 
 elements = size(ELEMENTS,1); % no. of nodes
